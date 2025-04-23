@@ -1,14 +1,13 @@
-// Reverted: Using @supabase/ssr helper for client components
-import { createBrowserClient } from '@supabase/ssr';
+// Supabase client utility (Currently unused as auth pages initialize directly)
 
-// Note: This setup utilizes SSR cookie handling provided by @supabase/ssr.
-// Different helpers (createServerComponentClient, createRouteHandlerClient, etc.)
-// will be used in their respective contexts.
+// import { createBrowserClient } from '@supabase/ssr'; // Problematic import removed
 
-export function createClient() {
-  // Basic client setup using public keys
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-} 
+// export function createClient() {
+//   // Basic client setup using public keys
+//   return createBrowserClient(
+//     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+//   );
+// }
+
+// We might add specific client creation helpers here later if needed. 
