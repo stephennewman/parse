@@ -6,7 +6,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 // Import UI components as needed
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input'; // Added Input
-import { Mic, MicOff, Loader2, Send, BrainCircuit, Save } from 'lucide-react'; // Added BrainCircuit and Save
+import { Mic, MicOff, Loader2, BrainCircuit, Save } from 'lucide-react'; // Removed Send
 import { toast } from 'sonner'; // For notifications
 import { Textarea } from '@/components/ui/textarea'; // Added Textarea for transcription display
 
@@ -31,22 +31,6 @@ enum RecordingStatus {
   Recording = 'recording',
   Stopped = 'stopped',
   Error = 'error',
-}
-
-// Add Transcription Status
-enum TranscriptionStatus {
-    Idle = 'idle',
-    Loading = 'loading',
-    Success = 'success',
-    Error = 'error',
-}
-
-// Add Parsing Status
-enum ParsingStatus {
-    Idle = 'idle',
-    Loading = 'loading',
-    Success = 'success',
-    Error = 'error',
 }
 
 // Type for parsed results state
@@ -387,19 +371,7 @@ export default function CapturePage() {
     }));
   };
 
-  // resetCaptureState - keep this for successful save
-  const resetCaptureState = () => {
-    setRecordingStatus(RecordingStatus.Idle);
-    setAudioBlob(null);
-    setTranscription(null);
-    setProcessingState(ProcessingState.Idle);
-    setParsedResults({});
-    setProcessingError(null);
-    audioChunksRef.current = [];
-    // Keep template and fields loaded
-  };
-
-  // handleSaveSubmission remains the same, but check processingState
+  // handleSaveSubmission - now correctly uses form_data and redirects
   const handleSaveSubmission = async () => {
     if (processingState !== ProcessingState.Success || Object.keys(parsedResults).length === 0) {
       toast.error("No parsed data available to save.");
@@ -446,7 +418,6 @@ export default function CapturePage() {
 
       // 3. Handle Success & Redirect
       toast.success("Submission saved successfully! Redirecting...");
-      // resetCaptureState(); // Don't reset state if redirecting immediately
       router.push(`/submissions/${newSubmissionId}`); // Redirect to the new submission detail page
 
     } catch (err) {
@@ -504,7 +475,7 @@ export default function CapturePage() {
                             placeholder={`Enter ${field.label}... (${field.field_type})`}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             rows={Component === Textarea ? 4 : undefined} // Add rows for Textarea
-                            disabled={processingState !== ProcessingState.Success || isSaving} // Also disable fields during save
+                            disabled={processingState !== ProcessingState.Success || interactionDisabled} // Disable unless success AND not interacting
                         />
                     </div>
                 )
@@ -524,7 +495,7 @@ export default function CapturePage() {
             <p className="text-center text-red-600">An error occurred with recording. Please try again.</p>
         )}
           {/* Timer could go here */} 
-         {audioBlob && recordingStatus === RecordingStatus.Stopped && (
+         {audioBlob && recordingStatus === RecordingStatus.Stopped && !isProcessing && processingState !== ProcessingState.Success && (
              <div className="text-center space-y-3">
                  <p className="font-medium">Recording finished.</p>
                  <audio controls src={URL.createObjectURL(audioBlob)} className="mx-auto w-full max-w-sm" />
@@ -546,9 +517,24 @@ export default function CapturePage() {
             <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>
         )}
 
-        {/* --- Success Display (Transcription no longer shown separately unless needed) --- */} 
+        {/* --- Success Display - Re-add transcription display --- */} 
          {processingState === ProcessingState.Success && (
-            <p className="text-center text-green-600 font-medium">Processing complete. Review fields above.</p>
+            <div className="space-y-3">
+                 <p className="text-center text-green-600 font-medium">Processing complete. Review fields above.</p>
+                 {/* Optionally show the final transcription */}
+                 {transcription && (
+                     <div className="mt-2">
+                         <label htmlFor="final-transcription" className="block text-sm font-medium text-gray-700 mb-1">Final Transcription:</label>
+                         <Textarea
+                             id="final-transcription"
+                             readOnly
+                             value={transcription}
+                             rows={3}
+                             className="w-full bg-white text-sm"
+                         />
+                     </div>
+                 )}
+            </div>
         )}
       </div>
 
@@ -557,7 +543,7 @@ export default function CapturePage() {
         <Button
           onClick={handleRecordClick}
           size="lg"
-          disabled={!canRecord} // Simplified disable logic
+          disabled={!canRecord || interactionDisabled}
           className={`${ 
             isRecording
               ? "bg-red-600 hover:bg-red-700"

@@ -126,7 +126,7 @@ export default function SubmissionDetailPage() {
                             );
                         })
                     ) : (
-                        <p className="text-sm text-gray-500">No fields were defined for this form template at the time of submission (or fields couldn't be loaded).</p>
+                        <p className="text-sm text-gray-500">No fields were defined for this form template at the time of submission (or fields couldn&apos;t be loaded).</p>
                     )}
                 </CardContent>
             </Card>
