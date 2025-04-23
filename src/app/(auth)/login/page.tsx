@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/ssr';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import Link from 'next/link';
 import { Button } from '~/components/ui/button';
 import {
   Card,
@@ -77,10 +78,16 @@ export default function LoginPage() {
               <p className="text-sm text-red-600 dark:text-red-400">{message}</p>
             )}
           </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full">
+          <CardFooter className="flex-col items-start">
+            <Button type="submit" className="w-full mb-4">
               Sign in
             </Button>
+             <div className="text-center text-sm w-full">
+               Don't have an account?{' '}
+               <Link href="/signup" className="underline">
+                 Sign up
+               </Link>
+             </div>
           </CardFooter>
         </form>
         {/* Optional: Add link to Sign Up page */}
