@@ -73,6 +73,7 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 
 ## Notes / Troubleshooting
 
+*   **[Update Date: 2024-08-23] ESLint Fixes:** Resolved several ESLint errors (`no-explicit-any`, `no-unused-vars`, `no-unescaped-entities`) that were causing Vercel build failures.
 *   **[Update Date: 2024-08-23] Supabase Library Standardization:** Resolved previous inconsistency. Now using `@supabase/auth-helpers-nextjs` (`createClientComponentClient`, `createMiddlewareClient`) for both client-side operations (forms, sign-out) and middleware, removing reliance on `@/lib/supabase/client.ts` and `@supabase/ssr` methods for authentication context. This resolved issues with `getUser()` failing on client-side navigation.
 *   Encountered and resolved RLS `INSERT` violation by setting `auth.uid()` as default for `user_id` columns.
 *   Encountered and resolved `NOT NULL` violation for `internal_key` by implementing key generation.
