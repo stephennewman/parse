@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const sidebarWidth = 'w-64'; // Example: 16rem or 256px
 
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = createClientComponentClient();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -43,6 +43,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     Home
                   </Link>
                 </li>
+                <li>
+                  <Link href="/forms" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium cursor-pointer">
+                    Forms
+                  </Link>
+                </li>
                 {/* Add more navigation links here */}
               </ul>
             </nav>
@@ -61,7 +66,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       {/* Main Content Area Wrapper (for header and content) */}
-      <div className={`flex flex-col flex-grow ml-${sidebarWidth.split('-')[1]}`}> {/* Added ml to offset sidebar */}
+      <div className={`flex flex-col flex-grow ml-64`}> {/* Changed to static class */}
         {/* Header removed */}
         
         {/* Main Content - Removed extra top padding */}
