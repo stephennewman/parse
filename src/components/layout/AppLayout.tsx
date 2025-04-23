@@ -11,7 +11,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   // Define heights and widths for layout calculations (adjust as needed)
-  const headerHeight = 'h-16'; // Example: 4rem or 64px
+  // const headerHeight = 'h-16'; // Remove unused constant
   const sidebarWidth = 'w-64'; // Example: 16rem or 256px
 
   const router = useRouter();
