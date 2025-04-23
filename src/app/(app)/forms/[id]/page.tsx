@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation'; // Hook to get route parameters
+import { useParams } from 'next/navigation'; // Removed useRouter import
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 // Import UI components as needed
 import {
@@ -12,7 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'; // Import the new component
-import { Button } from '@/components/ui/button';
+// Removed Button import
+// import { Button } from '@/components/ui/button';
+// Removed icon imports
+// import { Edit } from 'lucide-react';
 // Define types if not already globally available
 interface FormTemplate {
   id: string;
@@ -30,7 +33,6 @@ interface FormField {
 
 export default function FormDetailPage() {
   const params = useParams(); // Get route parameters { id: '...' }
-  const router = useRouter();
   const id = params.id as string; // Extract the id (ensure it's a string)
 
   const [template, setTemplate] = useState<FormTemplate | null>(null);
@@ -72,9 +74,13 @@ export default function FormDetailPage() {
         if (fieldsError) throw fieldsError;
         setFields(fieldsData || []);
 
-      } catch (err: any) {
+      } catch (err) { // Apply same error typing fix
+        let message = "Failed to load form details.";
+        if (err instanceof Error) {
+          message = err.message;
+        }
+        setError(message);
         console.error("Error fetching form details:", err);
-        setError(err.message || "Failed to load form details.");
       } finally {
         setLoading(false);
       }

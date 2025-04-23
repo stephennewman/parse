@@ -60,8 +60,12 @@ export default function CapturePage() {
             if (fError) throw fError;
             setFields(fData || []);
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            let message = "Failed to load form details.";
+            if (err instanceof Error) {
+                message = err.message;
+            }
+            setError(message);
             console.error("Error fetching form structure:", err);
         } finally {
             setLoading(false);

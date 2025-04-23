@@ -108,11 +108,11 @@ export default function NewFormPage() {
             }
             templateId = templateData.id;
 
-            const fieldsToInsert = fields.map((field, index) => {
+            const fieldsToInsert = fields.map((field, _index) => {
               const label = field.fieldName.trim();
               if (!label) {
-                 toast.warning(`Field name cannot be empty (check field #${index + 1}).`);
-                 throw new Error(`Field name cannot be empty (check field #${index + 1}).`);
+                 toast.warning(`Field name cannot be empty (check field #${_index + 1}).`);
+                 throw new Error(`Field name cannot be empty (check field #${_index + 1}).`);
               }
               const internalKey = generateInternalKey(label);
               if (!internalKey) {
@@ -124,7 +124,7 @@ export default function NewFormPage() {
                   label: label,
                   internal_key: internalKey,
                   field_type: field.fieldType,
-                  display_order: index,
+                  display_order: _index,
               };
             });
 
@@ -140,9 +140,13 @@ export default function NewFormPage() {
 
             router.push(`/forms/${templateId}`);
 
-        } catch (error: any) {
+        } catch (error) {
+            let message = "Error saving template";
+            if (error instanceof Error) {
+              message = `Error saving template: ${error.message}`;
+            }
             console.error("Error saving form template:", error);
-            toast.error(`Error saving template: ${error.message}`);
+            toast.error(message);
         }
     });
   };
@@ -195,7 +199,7 @@ export default function NewFormPage() {
                   Add fields using the button below.
                 </div>
               ) : (
-                fields.map((field, index) => (
+                fields.map((field, _index) => (
                   <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md bg-gray-50">
                     <div className="flex-grow space-y-2">
                       <Label htmlFor={`field-name-${field.id}`}>Field Name</Label>

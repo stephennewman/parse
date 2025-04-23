@@ -123,7 +123,7 @@ export default function FormsPage() {
         ) : (
           <Card>
              <CardContent className="p-6 text-center text-muted-foreground">
-                You haven't created any form templates yet.
+                You haven&apos;t created any form templates yet.
              </CardContent>
           </Card>
         )
