@@ -26,13 +26,14 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
     - `geist` (Font)
     - `lucide-react` (Icons)
     - `sonner` (Toast notifications)
+    - `date-fns` (For date formatting)
 - [x] **Supabase Setup:**
     - Project created (`vtfogatscubywmphbuok`).
     - Email Authentication provider enabled.
     - Database Tables Created: `form_templates`, `form_fields`, `form_submissions`.
     - RLS policies enabled & configured (including `auth.uid()` default for `user_id`).
     - Basic Row Level Security (RLS) policies applied for user data isolation.
-- [x] **Environment Variables:** `.env.local` created in project root.
+- [x] **Environment Variables:** `.env.local` created in project root (Requires `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `OPENAI_API_KEY`).
 - [x] **Version Control:** Setup and initial push completed.
 - [x] **UI Library:** `shadcn/ui` initialized (components: button, card, input, label, textarea, separator, select).
 - [x] **`tsconfig.json`:** Path aliases (`@/*`, `~/*`) configured.
@@ -69,10 +70,56 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
     *   Fetches and displays the associated fields for the template.
     *   Refined header and action buttons (Edit button currently hidden).
 - [ ] **Edit Form UI/Logic (`/forms/[id]/edit`):** Implement editing functionality.
-- [ ] **Capture Page Structure (`/capture/[id]`):** Created basic page structure and data fetching.
+- [x] **Capture Page Structure (`/capture/[id]`):** Created basic page structure and data fetching. *(Completed as part of Phase 3)*
+
+## Phase 3 Progress (Voice Capture & Processing - [Date: 2024-08-26])
+
+- [x] **Microphone Access & Recording (`/capture/[id]`):**
+    - Implemented microphone permission request using `navigator.mediaDevices.getUserMedia`.
+    - Added recording logic using `MediaRecorder` API.
+    - Handled recording states (idle, requesting, recording, stopped, denied, error).
+    - Added state management using `useState` and `useRef`.
+    - Implemented cleanup logic.
+- [x] **Transcription API Route (`/api/transcribe`):**
+    - Created API route to handle audio blob uploads.
+    - Integrated `openai` library to call Whisper API (`whisper-1`).
+    - Handled temporary file storage and cleanup for API interaction.
+    - Added error handling and environment variable checks.
+- [x] **Parsing API Route (`/api/parse`):**
+    - Created API route to handle transcription + field definition uploads.
+    - Integrated `openai` library to call Chat Completions API (`gpt-4o-mini`).
+    - Constructed dynamic prompts based on form fields.
+    - Enabled JSON mode for structured output.
+    - Added error handling.
+- [x] **Capture Page Integration (`/capture/[id]`):**
+    - Added state management for transcription and parsing processes (`ProcessingState` enum).
+    - Implemented logic to call `/api/transcribe` and `/api/parse`.
+    - Updated UI to display results (populating form fields with parsed data).
+    - Made form fields editable after parsing.
+    - Implemented dynamic loading messages and icon (`BrainCircuit`) during processing.
+- [x] **Workflow Streamlining:**
+    - Automated transcription and parsing steps upon clicking "Stop Recording".
+    - Removed intermediate "Transcribe" and "Parse" buttons.
+- [x] **Save Submission Logic (`/capture/[id]`):**
+    - Implemented `handleSaveSubmission` function.
+    - Fetched user session using Supabase auth helpers.
+    - Inserted results (`user_id`, `template_id`, `form_data`) into `form_submissions` table.
+    - Handled success/error states with toasts.
+- [x] **View Submission Page (`/submissions/[id]`):**
+    - Created dynamic route to display details of a saved submission.
+    - Fetched submission data, template name, and field definitions from Supabase.
+    - Displayed saved data in a read-only format using field labels.
+    - Added breadcrumbs for navigation.
+    - Added `date-fns` dependency for timestamp formatting.
+- [x] **Post-Save Redirect:**
+    - Modified `handleSaveSubmission` to retrieve the new submission ID.
+    - Redirected user to the `/submissions/[id]` page upon successful save.
 
 ## Notes / Troubleshooting
 
+*   **[Update Date: 2024-08-26] V1 Voice Capture Complete:** Implemented end-to-end flow for recording voice, transcribing with Whisper, parsing with GPT, reviewing/editing results, saving to DB, and viewing the saved submission. Streamlined the processing steps after recording stop. Added dynamic loading indicators.
+*   **[Update Date: 2024-08-26] Dependency Added:** Installed `date-fns` for formatting submission timestamps.
+*   **[Update Date: 2024-08-26] DB Schema Fix:** Corrected Supabase insert call in `handleSaveSubmission` to use `form_data` column name instead of `data`.
 *   **[Update Date: 2024-08-23] ESLint Fixes:** Resolved several ESLint errors (`no-explicit-any`, `no-unused-vars`, `no-unescaped-entities`) that were causing Vercel build failures.
 *   **[Update Date: 2024-08-23] Supabase Library Standardization:** Resolved previous inconsistency. Now using `@supabase/auth-helpers-nextjs` (`createClientComponentClient`, `createMiddlewareClient`) for both client-side operations (forms, sign-out) and middleware, removing reliance on `@/lib/supabase/client.ts` and `@supabase/ssr` methods for authentication context. This resolved issues with `getUser()` failing on client-side navigation.
 *   Encountered and resolved RLS `INSERT` violation by setting `auth.uid()` as default for `user_id` columns.

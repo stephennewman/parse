@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 // Import UI components as needed
 import { Button } from '@/components/ui/button';
-import { Mic } from 'lucide-react'; // Example icon
+import { Input } from '@/components/ui/input'; // Added Input
+import { Mic, MicOff, Loader2, Send, BrainCircuit, Save } from 'lucide-react'; // Added BrainCircuit and Save
+import { toast } from 'sonner'; // For notifications
+import { Textarea } from '@/components/ui/textarea'; // Added Textarea for transcription display
 
 // TODO: Define types for template/fields if not shared
 interface FormTemplate {
@@ -20,26 +23,90 @@ interface FormField {
   display_order: number;
 }
 
+// Enum for recording status
+enum RecordingStatus {
+  Idle = 'idle',
+  RequestingPermission = 'requesting',
+  PermissionDenied = 'denied',
+  Recording = 'recording',
+  Stopped = 'stopped',
+  Error = 'error',
+}
+
+// Add Transcription Status
+enum TranscriptionStatus {
+    Idle = 'idle',
+    Loading = 'loading',
+    Success = 'success',
+    Error = 'error',
+}
+
+// Add Parsing Status
+enum ParsingStatus {
+    Idle = 'idle',
+    Loading = 'loading',
+    Success = 'success',
+    Error = 'error',
+}
+
+// Type for parsed results state
+type ParsedResults = Record<string, string | number | null>;
+
+// Combine processing states for UI simplification
+enum ProcessingState {
+    Idle = 'idle',
+    Transcribing = 'transcribing',
+    Parsing = 'parsing',
+    Success = 'success', // Overall success (parsed)
+    ErrorTranscription = 'error_transcription',
+    ErrorParsing = 'error_parsing',
+}
+
+// Array of fun loading messages
+const loadingMessages = [
+    "Analyzing audio waves...",
+    "Decoding your dictation...",
+    "Engaging neural networks...",
+    "Warming up the AI...",
+    "Structuring the insights...",
+    "Finding the keywords...",
+    "Almost there...",
+    "Just a moment more...",
+    "Processing your thoughts...",
+    "Consulting the digital oracle...",
+];
+
 export default function CapturePage() {
   const params = useParams();
+  const router = useRouter(); // For potential redirect
   const id = params.id as string;
 
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [fields, setFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  // TODO: Add state for audio data, transcription, parsed results
+  const [fetchError, setFetchError] = useState<string | null>(null); // Renamed from error
+  const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>(RecordingStatus.Idle);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null); // To store the final recording
+  const [processingState, setProcessingState] = useState<ProcessingState>(ProcessingState.Idle);
+  const [transcription, setTranscription] = useState<string | null>(null);
+  const [parsedResults, setParsedResults] = useState<ParsedResults>({});
+  const [processingError, setProcessingError] = useState<string | null>(null); // Combined error message
+  const [isSaving, setIsSaving] = useState<boolean>(false); // State for save operation
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(loadingMessages[0]); // State for dynamic message
+  // TODO: Add state for transcription, parsed results
   const supabase = createClientComponentClient();
 
+  // Refs to manage media recorder and stream
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   useEffect(() => {
-    // TODO: Fetch template and field data based on 'id'
-    // Similar to FormDetailPage, fetch template name and fields
-    // Need 'internal_key' for fields to map results later
+    // Fetch form structure
     const fetchFormStructure = async () => {
         if (!id) return;
         setLoading(true);
-        setError(null);
+        setFetchError(null);
         try {
             // Fetch template basics (name)
             const { data: tData, error: tError } = await supabase
@@ -65,73 +132,475 @@ export default function CapturePage() {
             if (err instanceof Error) {
                 message = err.message;
             }
-            setError(message);
+            setFetchError(message); // Update renamed state
             console.error("Error fetching form structure:", err);
         } finally {
             setLoading(false);
         }
     };
     fetchFormStructure();
-  }, [id, supabase]);
+
+    // Cleanup function to stop recording and release mic if component unmounts
+    return () => {
+        stopRecording(false); // Pass false to avoid setting state on unmount
+        if (audioStreamRef.current) {
+          audioStreamRef.current.getTracks().forEach(track => track.stop());
+        }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, supabase]); // Keep original dependencies, stopRecording has no deps
+
+  // Effect to cycle through loading messages during processing
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    const isProcessing = processingState === ProcessingState.Transcribing || processingState === ProcessingState.Parsing;
+
+    if (isProcessing) {
+        // Set initial message immediately
+        setCurrentLoadingMessage(loadingMessages[Math.floor(Math.random() * loadingMessages.length)]);
+        
+        intervalId = setInterval(() => {
+            setCurrentLoadingMessage(prevMessage => {
+                let newMessage;
+                // Ensure we don't pick the same message twice in a row
+                do {
+                    newMessage = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+                } while (newMessage === prevMessage);
+                return newMessage;
+            });
+        }, 2000); // Change message every 2 seconds
+    }
+
+    // Cleanup function
+    return () => {
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+    };
+  }, [processingState]); // Rerun when processingState changes
+
+  const startRecording = async () => {
+    setRecordingStatus(RecordingStatus.RequestingPermission);
+    setAudioBlob(null);
+    audioChunksRef.current = [];
+    // --> Reset processing state when starting new recording
+    setProcessingState(ProcessingState.Idle);
+    setTranscription(null);
+    setParsedResults({});
+    setProcessingError(null);
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Media Devices API not supported in this browser.');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      setRecordingStatus(RecordingStatus.Recording);
+      toast.success("Microphone access granted. Recording started.");
+
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      // MODIFIED: onstop now triggers the full processing pipeline
+      recorder.onstop = () => {
+        const completeBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(completeBlob); // Keep blob reference if needed later
+        setRecordingStatus(RecordingStatus.Stopped);
+        toast.info("Recording stopped. Processing...");
+        
+        // Stop tracks
+        if (audioStreamRef.current) {
+            audioStreamRef.current.getTracks().forEach(track => track.stop());
+            audioStreamRef.current = null;
+        }
+        
+        // --> Immediately start processing
+        handleProcessRecording(completeBlob); 
+      };
+
+      recorder.onerror = (event) => {
+        console.error("MediaRecorder error:", event);
+        toast.error("An error occurred during recording.");
+        setRecordingStatus(RecordingStatus.Error);
+        setProcessingState(ProcessingState.Idle); // Reset processing
+        stopRecording(); // Attempt cleanup
+      }
+
+      recorder.start();
+
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      let message = "Could not start recording.";
+      if (err instanceof Error) {
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+              message = "Microphone permission denied. Please enable it in your browser settings.";
+              setRecordingStatus(RecordingStatus.PermissionDenied);
+          } else {
+              message = `Error: ${err.message}`;
+              setRecordingStatus(RecordingStatus.Error);
+          }
+      } else {
+          setRecordingStatus(RecordingStatus.Error);
+      }
+      toast.error(message);
+      // Ensure stream is stopped if partially started
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(track => track.stop());
+        audioStreamRef.current = null;
+      }
+      // Ensure processing state is reset on mic error
+      setProcessingState(ProcessingState.Idle);
+    }
+  };
+
+  const stopRecording = (updateState = true) => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop(); // This triggers the modified onstop handler
+      // Status updates (RecordingStatus.Stopped, ProcessingState starting) happen in onstop
+    } else {
+        // If we are stopping but not actually recording (e.g., cleanup on permission denial/error)
+        if (audioStreamRef.current) {
+            audioStreamRef.current.getTracks().forEach(track => track.stop());
+            audioStreamRef.current = null;
+        }
+        // Reset status if it wasn't already in a final state
+        if (updateState && recordingStatus !== RecordingStatus.Idle && recordingStatus !== RecordingStatus.PermissionDenied && recordingStatus !== RecordingStatus.Error && recordingStatus !== RecordingStatus.Stopped) {
+           setRecordingStatus(RecordingStatus.Idle);
+        }
+        // Ensure processing state is idle if stopping unexpectedly
+        if (processingState !== ProcessingState.Success && processingState !== ProcessingState.ErrorParsing && processingState !== ProcessingState.ErrorTranscription) {
+           setProcessingState(ProcessingState.Idle);
+        }
+    }
+     mediaRecorderRef.current = null; // Clear the ref
+  };
 
   const handleRecordClick = () => {
-    if (isRecording) {
-      // TODO: Stop recording logic
-      console.log("Stopping recording...");
-      setIsRecording(false);
-    } else {
-      // TODO: Start recording logic (request mic permission, etc.)
-      console.log("Starting recording...");
-      setIsRecording(true);
+    if (recordingStatus === RecordingStatus.Recording) {
+      stopRecording();
+    } else if (
+        recordingStatus === RecordingStatus.Idle || 
+        recordingStatus === RecordingStatus.Stopped || // Allow starting again after stop (before/during processing)
+        recordingStatus === RecordingStatus.Error || 
+        recordingStatus === RecordingStatus.PermissionDenied ||
+        processingState === ProcessingState.Success || // Allow after successful process
+        processingState === ProcessingState.ErrorParsing || // Allow after error
+        processingState === ProcessingState.ErrorTranscription
+    ) {
+      // Allow starting new recording if idle, stopped, error, or previous processing finished/failed
+      startRecording();
+    }
+    // Do nothing if RequestingPermission or actively processing (transcribing/parsing/saving)
+  };
+
+  // RENAMED & MODIFIED: Handles the whole pipeline (transcription -> parsing)
+  const handleProcessRecording = async (blobToProcess: Blob) => {
+    if (!blobToProcess) {
+        toast.error("Internal error: No audio blob found for processing.");
+        setProcessingState(ProcessingState.Idle);
+        return;
+    }
+
+    setProcessingState(ProcessingState.Transcribing);
+    setProcessingError(null);
+    setTranscription(null);
+    setParsedResults({});
+
+    // --- Transcription Step --- 
+    let currentTranscription: string | null = null;
+    const formData = new FormData();
+    formData.append('audio', blobToProcess, 'recording.webm');
+
+    try {
+        const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || `Transcription HTTP error! status: ${response.status}`);
+        }
+        currentTranscription = result.transcription;
+        setTranscription(currentTranscription); // Update state
+        // Don't toast success yet, move to parsing
+
+    } catch (err) {
+        console.error("Transcription failed:", err);
+        let message = "Failed to get transcription.";
+        if (err instanceof Error) message = err.message;
+        setProcessingError(message);
+        setProcessingState(ProcessingState.ErrorTranscription);
+        toast.error(`Processing failed: ${message}`);
+        return; // Stop pipeline on transcription error
+    }
+
+    // --- Parsing Step --- 
+    if (!currentTranscription || fields.length === 0) {
+        toast.error("Cannot parse without transcription and form fields.");
+        setProcessingError("Missing data for parsing step.");
+        setProcessingState(ProcessingState.ErrorParsing); // Or a generic error?
+        return;
+    }
+    
+    setProcessingState(ProcessingState.Parsing);
+    // No need to clear parsedResults here, cleared at start
+
+    try {
+         const response = await fetch('/api/parse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                transcription: currentTranscription, 
+                fields: fields.map(f => ({ label: f.label, internal_key: f.internal_key, field_type: f.field_type })) 
+            }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || `Parsing HTTP error! status: ${response.status}`);
+        }
+
+        setParsedResults(result.parsedData || {});
+        setProcessingState(ProcessingState.Success);
+        toast.success("Processing complete! Review and save.");
+
+    } catch (err) {
+        console.error("Parsing failed:", err);
+        let message = "Failed to parse transcription.";
+        if (err instanceof Error) message = err.message;
+        setProcessingError(message);
+        setProcessingState(ProcessingState.ErrorParsing);
+        toast.error(`Processing failed: ${message}`);
+    }
+  };
+
+  // handleFieldChange remains the same
+  const handleFieldChange = (internal_key: string, value: string | number) => {
+    setParsedResults(prev => ({
+        ...prev,
+        [internal_key]: value,
+    }));
+  };
+
+  // resetCaptureState - keep this for successful save
+  const resetCaptureState = () => {
+    setRecordingStatus(RecordingStatus.Idle);
+    setAudioBlob(null);
+    setTranscription(null);
+    setProcessingState(ProcessingState.Idle);
+    setParsedResults({});
+    setProcessingError(null);
+    audioChunksRef.current = [];
+    // Keep template and fields loaded
+  };
+
+  // handleSaveSubmission remains the same, but check processingState
+  const handleSaveSubmission = async () => {
+    if (processingState !== ProcessingState.Success || Object.keys(parsedResults).length === 0) {
+      toast.error("No parsed data available to save.");
+      return;
+    }
+    setIsSaving(true);
+
+    try {
+      // 1. Get User ID
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session?.user) {
+        toast.error("You must be logged in to save a submission.");
+        // Optionally redirect to login
+        // router.push('/login');
+        throw new Error("User not authenticated.");
+      }
+      const userId = session.user.id;
+
+      // 2. Insert into form_submissions and select the new ID
+      const { data: submissionData, error: insertError } = await supabase
+        .from('form_submissions')
+        .insert([
+          {
+            user_id: userId,
+            template_id: id,
+            form_data: parsedResults,
+          },
+        ])
+        .select('id') // Select the ID of the inserted row
+        .single(); // Expecting a single row back
+
+      if (insertError) {
+        console.error("Supabase insert error:", insertError);
+        throw new Error(`Failed to save submission: ${insertError.message}`);
+      }
+
+      if (!submissionData || !submissionData.id) {
+        console.error("Insert succeeded but no ID returned:", submissionData);
+        throw new Error("Could not retrieve submission ID after saving.");
+      }
+
+      const newSubmissionId = submissionData.id;
+
+      // 3. Handle Success & Redirect
+      toast.success("Submission saved successfully! Redirecting...");
+      // resetCaptureState(); // Don't reset state if redirecting immediately
+      router.push(`/submissions/${newSubmissionId}`); // Redirect to the new submission detail page
+
+    } catch (err) {
+      console.error("Save submission failed:", err);
+      let message = "Could not save submission.";
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      toast.error(message);
+    } finally {
+      setIsSaving(false); // Still set saving to false on error/finally
     }
   };
 
   if (loading) return <div>Loading form...</div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (fetchError) return <div className="text-red-500">Error: {fetchError}</div>;
   if (!template) return <div>Form not found.</div>;
 
+  const isRecording = recordingStatus === RecordingStatus.Recording;
+  const isRequestingMic = recordingStatus === RecordingStatus.RequestingPermission;
+  // Combine processing flags
+  const isProcessing = 
+      processingState === ProcessingState.Transcribing || 
+      processingState === ProcessingState.Parsing;
+  const canRecord = !isRequestingMic && !isProcessing && !isSaving; // Can record if not requesting, processing, or saving
+  // Save button appears only on overall success and not currently saving
+  const showSaveButton = processingState === ProcessingState.Success && !isSaving;
+  // General interaction disable flag
+  const interactionDisabled = isProcessing || isSaving;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Capture for: {template.name}</h1>
 
-      {/* TODO: Display form fields dynamically */}
+      {/* Form Fields - Updated to be Interactive */} 
       <div className="space-y-4 p-4 border rounded-md">
         <h2 className="text-lg font-medium">Form Fields</h2>
         {fields.length > 0 ? (
-            fields.map(field => (
-                <div key={field.id}>
-                    <label className="block text-sm font-medium text-gray-700">{field.label}</label>
-                    {/* TODO: Display input based on field.field_type */}
-                    {/* TODO: Bind value to state holding parsed results */}
-                    <input
-                        type="text"
-                        readOnly // For now, just display
-                        placeholder={`(${field.field_type})`}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-gray-100"
-                    />
-                </div>
-            ))
+            fields.map(field => {
+                const value = parsedResults[field.internal_key] ?? ''; // Get value or default to empty string
+                const inputType = field.field_type === 'number' ? 'number' : 'text'; // Basic type mapping
+                const Component = field.field_type === 'textarea' ? Textarea : Input;
+
+                return (
+                    <div key={field.id}>
+                        <label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700">{field.label}</label>
+                        <Component
+                            id={field.internal_key}
+                            name={field.internal_key}
+                            value={value} // Use controlled component value
+                            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => 
+                                handleFieldChange(field.internal_key, e.target.value)
+                            }
+                            type={Component === Input ? inputType : undefined} // Set type only for Input
+                            placeholder={`Enter ${field.label}... (${field.field_type})`}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            rows={Component === Textarea ? 4 : undefined} // Add rows for Textarea
+                            disabled={processingState !== ProcessingState.Success || isSaving} // Also disable fields during save
+                        />
+                    </div>
+                )
+            })
         ) : (
             <p>No fields defined for this form.</p>
         )}
       </div>
 
-      {/* Recording Controls */}
+      {/* Recording, Processing Status */}
+      <div className="space-y-4 p-4 border rounded-md bg-gray-50">
+        <h2 className="text-lg font-medium mb-2">Recording & Processing</h2>
+        {recordingStatus === RecordingStatus.PermissionDenied && (
+            <p className="text-center text-yellow-600">Microphone permission denied. Please enable it in your browser settings to record.</p>
+        )}
+        {recordingStatus === RecordingStatus.Error && (
+            <p className="text-center text-red-600">An error occurred with recording. Please try again.</p>
+        )}
+          {/* Timer could go here */} 
+         {audioBlob && recordingStatus === RecordingStatus.Stopped && (
+             <div className="text-center space-y-3">
+                 <p className="font-medium">Recording finished.</p>
+                 <audio controls src={URL.createObjectURL(audioBlob)} className="mx-auto w-full max-w-sm" />
+             </div>
+         )}
+
+        {/* --- Combined Processing UI --- */} 
+        {isProcessing && (
+             <div className="flex items-center justify-center p-4">
+                <BrainCircuit className="h-6 w-6 animate-spin text-indigo-600" /> 
+                <span className="ml-3 text-gray-700 font-medium">
+                    {currentLoadingMessage}
+                </span>
+            </div>
+        )}
+
+        {/* --- Error Display --- */} 
+        {(processingState === ProcessingState.ErrorTranscription || processingState === ProcessingState.ErrorParsing) && (
+            <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>
+        )}
+
+        {/* --- Success Display (Transcription no longer shown separately unless needed) --- */} 
+         {processingState === ProcessingState.Success && (
+            <p className="text-center text-green-600 font-medium">Processing complete. Review fields above.</p>
+        )}
+      </div>
+
+      {/* Bottom Controls: Record & Save */} 
       <div className="flex justify-center items-center space-x-4 p-4 border-t">
-         {/* TODO: Add timer/status display */}
         <Button
           onClick={handleRecordClick}
           size="lg"
-          className={isRecording ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}
+          disabled={!canRecord} // Simplified disable logic
+          className={`${ 
+            isRecording
+              ? "bg-red-600 hover:bg-red-700"
+              : "bg-blue-600 hover:bg-blue-700"
+          } disabled:opacity-50 disabled:cursor-not-allowed ${ 
+            (processingState === ProcessingState.Success || processingState === ProcessingState.ErrorParsing || processingState === ProcessingState.ErrorTranscription) ? 'bg-gray-500 hover:bg-gray-600' : '' // Muted if finished processing
+          }`}
         >
-          <Mic className="mr-2 h-5 w-5" />
-          {isRecording ? 'Stop Recording' : 'Start Recording'}
+          {isRequestingMic ? (
+            <Mic className="mr-2 h-5 w-5 animate-pulse" />
+          ) : isRecording ? (
+            <MicOff className="mr-2 h-5 w-5" />
+          ) : (
+            <Mic className="mr-2 h-5 w-5" />
+          )}
+          {isRequestingMic
+            ? "Requesting Mic..."
+            : isRecording
+            ? "Stop Recording"
+            : (processingState === ProcessingState.Success || processingState === ProcessingState.ErrorParsing || processingState === ProcessingState.ErrorTranscription)
+            ? "Record Again" // Show after processing done (success/fail)
+            : "Start Recording"}
         </Button>
-         {/* TODO: Add processing/submit button */}
+
+        {/* Save Submission Button */} 
+        {showSaveButton && (
+             <Button
+                onClick={handleSaveSubmission}
+                size="lg"
+                disabled={isSaving}
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-wait"
+             >
+                {isSaving ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                    <Save className="mr-2 h-5 w-5" />
+                )}
+                {isSaving ? 'Saving...' : 'Save Submission'}
+            </Button>
+        )}
       </div>
 
-      {/* TODO: Display transcription/results */}
+      {/* Placeholder for final structured results display? Or handled by fields above. */}
 
     </div>
   );
