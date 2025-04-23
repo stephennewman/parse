@@ -1,5 +1,12 @@
 # Parse Project Documentation
 
+**AI Assistant Instructions:**
+*   **Read Newest First:** Please review this document starting from the most recent entries (usually at the top of sections like "Notes / Troubleshooting") to get the latest context before proceeding.
+*   **Use Dates:** Pay attention to the dates associated with notes to understand the timeline of decisions and issues.
+*   **Update Frequently:** This document should be updated regularly as development progresses.
+
+---
+
 This document serves as a running log for the voice-to-form SaaS project. It provides context for ongoing development and future conversations.
 
 **Project Goal:** Build a SaaS platform enabling users to define forms, capture voice input, parse it into structured data using AI, verify, save, and potentially export the data.
@@ -36,11 +43,12 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 
 ## Notes / Troubleshooting
 
+*   **[2024-08-23] Supabase Library Inconsistency:** Currently, the Sign Out button (`src/components/layout/AppLayout.tsx`) uses the `createClient` utility (`src/lib/supabase/client.ts`) which relies on `@supabase/ssr`. However, the Login page (`src/app/(auth)/login/page.tsx`) and Middleware (`src/middleware.ts`) use functions from `@supabase/auth-helpers-nextjs` as a workaround for `@supabase/ssr` compatibility issues with Next.js 15/React 19. This mix works for now but should ideally be consolidated later.
 *   Encountered significant compatibility issues attempting to use the recommended `@supabase/ssr` package with Next.js 15 and React 19. Errors included failed module resolution and runtime TypeErrors (`createClientComponentClient is not a function`).
 *   Troubleshooting included: clean installs, cache clearing, downgrading Next.js/React, downgrading `@supabase/ssr`, switching bundlers (Webpack/Turbopack).
 *   **Current Workaround:** Using the deprecated `@supabase/auth-helpers-nextjs` package for client-side auth initialization.
-*   Need to update `src/app/(auth)/login/page.tsx` to use `auth-helpers`.
-*   Need to implement middleware using `auth-helpers` functions.
+*   Need to update `src/app/(auth)/login/page.tsx` to use `auth-helpers`. (Completed 2024-08-23)
+*   Need to implement middleware using `auth-helpers` functions. (Completed 2024-08-23)
 
 ## AI Development Guidelines
 
