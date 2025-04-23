@@ -199,6 +199,7 @@ export default function NewFormPage() {
                   Add fields using the button below.
                 </div>
               ) : (
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 fields.map((field, _index) => (
                   <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md bg-gray-50">
                     <div className="flex-grow space-y-2">
