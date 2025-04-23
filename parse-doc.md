@@ -42,5 +42,9 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 *   Need to update `src/app/(auth)/login/page.tsx` to use `auth-helpers`.
 *   Need to implement middleware using `auth-helpers` functions.
 
+## AI Development Guidelines
+
+- Before writing or modifying code, please ensure you have an up-to-date understanding of the codebase structure. If necessary, index or review key folders (like `src/components`, `src/app`, `src/lib`) to gain context.
+
 ---
 *(This document will be updated frequently)* 

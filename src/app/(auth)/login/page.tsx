@@ -37,8 +37,7 @@ export default function LoginPage() {
     if (error) {
       setMessage(`Login failed: ${error.message}`);
     } else {
-      setMessage('Login successful! Redirecting...');
-      router.refresh();
+      router.push('/');
     }
   };
 
@@ -52,7 +51,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid gap-4 mb-6">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -79,12 +78,12 @@ export default function LoginPage() {
             )}
           </CardContent>
           <CardFooter className="flex-col items-start">
-            <Button type="submit" className="w-full mb-4">
+            <Button type="submit" className="w-full mb-4 cursor-pointer">
               Sign in
             </Button>
              <div className="text-center text-sm w-full">
                Don&apos;t have an account?{' '}
-               <Link href="/signup" className="underline">
+               <Link href="/signup" className="underline cursor-pointer">
                  Sign up
                </Link>
              </div>
