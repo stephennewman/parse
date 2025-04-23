@@ -83,7 +83,7 @@ export default function LoginPage() {
               Sign in
             </Button>
              <div className="text-center text-sm w-full">
-               Don't have an account?{' '}
+               Don&apos;t have an account?{' '}
                <Link href="/signup" className="underline">
                  Sign up
                </Link>
