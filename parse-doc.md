@@ -122,9 +122,16 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
     - Implemented `handleDeleteTemplate` function to delete the template and its associated fields from Supabase after confirmation.
     - Added user feedback (toasts) and redirects upon success/failure.
     - Styled the delete button with a red outline.
+- [x] **Bulk Delete Forms:**
+    - Added checkboxes to form cards on the main forms list page (`/forms`).
+    - Implemented state management for selected forms.
+    - Added a "Delete Selected" button that appears when forms are selected.
+    - Implemented `handleBulkDelete` function to delete selected templates and their fields after confirmation, using toasts for feedback.
+    - Added `Checkbox` component using `shadcn/ui`.
 
 ## Notes / Troubleshooting
 
+*   **[Recent Update - Date] Feature Added:** Implemented bulk deletion of form templates from the main forms list page.
 *   **[Recent Update - Date] Feature Added:** Implemented functionality to delete form templates from the form detail page, including associated fields.
 *   **[Recent Update] UI Fix:** Ensured outline buttons (e.g., Edit, View Submissions on form detail page) display a pointer cursor on hover for better UX by adding `cursor-pointer` class.
 *   **[Update Date: 2024-08-26] V1 Voice Capture Complete:** Implemented end-to-end flow for recording voice, transcribing with Whisper, parsing with GPT, reviewing/editing results, saving to DB, and viewing the saved submission. Streamlined the processing steps after recording stop. Added dynamic loading indicators.
