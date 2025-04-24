@@ -112,32 +112,52 @@ export default function FormSubmissionsListPage() {
         }
     };
 
+    // Sort submissions based on sortKey and sortDirection
     const sortedSubmissions = useMemo(() => {
-        if (!sortKey) return submissions; // No sort key, return original order
-
-        return [...submissions].sort((a, b) => {
-            let valA: any;
-            let valB: any;
+        if (!submissions) return [];
+        if (!sortKey) return submissions;
+        
+        const sorted = [...submissions].sort((a, b) => {
+            let valA, valB;
 
             if (sortKey === 'created_at') {
-                valA = new Date(a.created_at).getTime();
-                valB = new Date(b.created_at).getTime();
+                // Explicitly compare dates
+                valA = a.created_at ? new Date(a.created_at).getTime() : -Infinity; 
+                valB = b.created_at ? new Date(b.created_at).getTime() : -Infinity; 
             } else {
-                // Handle dynamic fields from form_data
+                // Handle dynamic fields, checking for null/undefined
                 valA = a.form_data?.[sortKey];
                 valB = b.form_data?.[sortKey];
+
+                // Treat null/undefined consistently (e.g., place them at the bottom when ascending)
+                if (valA == null && valB == null) return 0;
+                if (valA == null) return sortDirection === 'asc' ? -1 : 1; 
+                if (valB == null) return sortDirection === 'asc' ? 1 : -1; 
+
+                // Attempt numeric comparison if both are numbers
+                const numA = Number(valA);
+                const numB = Number(valB);
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    valA = numA;
+                    valB = numB;
+                } else {
+                     // Fallback to locale-aware string comparison
+                    valA = String(valA).toLowerCase(); 
+                    valB = String(valB).toLowerCase();
+                }
             }
 
-            // Basic comparison logic (handles numbers, strings, nulls)
-            // Consider more robust type-specific comparison if needed
-            const comparison = 
-                (valA === null || valA === undefined) ? 1 : 
-                (valB === null || valB === undefined) ? -1 :
-                (valA < valB) ? -1 :
-                (valA > valB) ? 1 : 0;
-
-            return sortDirection === 'asc' ? comparison : -comparison;
+            // Comparison logic
+            if (valA < valB) {
+                return sortDirection === 'asc' ? -1 : 1;
+            } 
+            if (valA > valB) {
+                return sortDirection === 'asc' ? 1 : -1;
+            }
+            return 0;
         });
+
+        return sorted;
     }, [submissions, sortKey, sortDirection]);
 
     const breadcrumbItems = [

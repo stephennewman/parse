@@ -13,9 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'; // Import the new component
 import { Button } from '@/components/ui/button'; // Re-add Button import
-import { Edit, List, Link2, Copy, ExternalLink } from 'lucide-react'; // Re-add Edit, List, Link2, Copy icons, Added ExternalLink
-import { Input } from '@/components/ui/input'; // Added Input
-import { Label } from '@/components/ui/label'; // Added Label
+import { Edit, List, ExternalLink } from 'lucide-react'; // Removed Link2, Copy
 import { toast } from 'sonner'; // Added toast
 // Define types if not already globally available
 interface FormTemplate {
@@ -124,19 +122,6 @@ export default function FormDetailPage() {
         { label: template.name }, // Current page (form name), no href
       ]
     : [{ label: "Forms", href: "/forms" }]; // Fallback if template is not loaded yet
-
-  // --- Copy Link Handler ---
-  const handleCopyLink = () => {
-    if (!captureLink) return;
-    navigator.clipboard.writeText(captureLink)
-      .then(() => {
-        toast.success("Capture link copied to clipboard!");
-      })
-      .catch(err => {
-        console.error("Failed to copy link: ", err);
-        toast.error("Failed to copy link.");
-      });
-  };
 
   // --- Open Link Handler ---
   const handleOpenLink = () => {

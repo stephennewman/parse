@@ -18,7 +18,6 @@ import {
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter, useParams } from "next/navigation"; // Added useParams
 import React from "react";
-import Link from 'next/link';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { toast } from "sonner";
 
