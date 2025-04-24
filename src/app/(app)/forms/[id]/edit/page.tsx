@@ -31,6 +31,25 @@ interface FormFieldState {
   fieldType: string;
 }
 
+// Interface matching DB form_fields structure
+interface FormField {
+    id: string;
+    template_id: string;
+    label: string;
+    internal_key: string;
+    field_type: string;
+    display_order: number;
+}
+
+// Interface for the payload to insert new fields
+interface NewFormFieldPayload {
+    template_id: string;
+    label: string;
+    internal_key: string;
+    field_type: string;
+    display_order: number;
+}
+
 // Define allowed field types
 const FIELD_TYPES = ["text", "number", "date", "textarea"];
 
@@ -51,7 +70,6 @@ export default function EditFormPage() {
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [fields, setFields] = useState<FormFieldState[]>([]);
-  const [originalFields, setOriginalFields] = useState<FormFieldState[]>([]); // Store original fields for comparison
   const [loading, setLoading] = useState(true); // State for initial data fetch
   const [isUpdating, startTransition] = useTransition(); // Renamed from isPending for clarity
   const [error, setError] = useState<string | null>(null); // State for fetch/update errors
@@ -101,8 +119,7 @@ export default function EditFormPage() {
           }));
 
           setFields(mappedFields);
-          // Deep copy for original state comparison during update
-          // setOriginalFields(JSON.parse(JSON.stringify(mappedFields))); // Original state potentially not needed or handled differently
+          // setOriginalFields(JSON.parse(JSON.stringify(mappedFields))); // Removed - no longer needed
 
       } catch (err) {
           console.error("Error fetching form data:", err);
@@ -166,53 +183,54 @@ export default function EditFormPage() {
             if (templateUpdateError) throw new Error(`Failed to update template details: ${templateUpdateError.message}`);
 
             // --- 2. Calculate Field Differences --- 
-            const originalFieldsMap = new Map(originalFields.map(f => [f.dbId, f])); // Use dbId for original map
-
-            const fieldsToAdd: any[] = [];
-            const fieldsToUpdate: any[] = [];
+            const fieldsToAdd: NewFormFieldPayload[] = [];
+            const fieldsToUpdate: (Partial<FormField> & { id: string })[] = []; // Corrected type usage
             const fieldIdsToDelete: string[] = [];
 
             // Check for updates and additions
             for (const currentField of fields) {
-                const originalField = originalFields.find(of => of.clientId === currentField.clientId);
                 const label = currentField.fieldName.trim();
                 const internalKey = generateInternalKey(label);
                  if (!internalKey) {
                     throw new Error(`Could not generate valid internal key for field: ${label}`);
                 }
 
-                if (currentField.dbId) { // Existing field
-                     const originalForCompare = originalFieldsMap.get(currentField.dbId);
-                     // Check if name or type changed
-                     if (originalForCompare && 
-                         (originalForCompare.fieldName !== label || originalForCompare.fieldType !== currentField.fieldType))
-                     {
-                         fieldsToUpdate.push({
-                             id: currentField.dbId,
-                             label: label,
-                             internal_key: internalKey,
-                             field_type: currentField.fieldType,
-                             // display_order might need updating if reordering is implemented
-                             // display_order: fields.findIndex(f => f.clientId === currentField.clientId)
-                         });
-                     }
+                if (currentField.dbId) { // Existing field - prepare for potential update via upsert
+                    fieldsToUpdate.push({
+                        id: currentField.dbId,
+                        label: label,
+                        internal_key: internalKey,
+                        field_type: currentField.fieldType,
+                        display_order: fields.findIndex(f => f.clientId === currentField.clientId) // Set display order based on current position
+                    });
                 } else { // New field
                      fieldsToAdd.push({
                          template_id: formId,
                          label: label,
                          internal_key: internalKey,
                          field_type: currentField.fieldType,
-                         display_order: fields.findIndex(f => f.clientId === currentField.clientId) // Use current index for order
+                         display_order: fields.findIndex(f => f.clientId === currentField.clientId) // Set display order based on current position
                      });
                 }
             }
 
-            // Check for deletions
-            for (const originalField of originalFields) {
-                 if (originalField.dbId && !fields.some(cf => cf.clientId === originalField.clientId)) {
-                    fieldIdsToDelete.push(originalField.dbId);
-                 }
-            }
+            // Check for deletions - Fetch original IDs and compare with current state
+            // Fetch original IDs first to compare against current state's dbIds.
+            const { data: originalFieldIdsData, error: fetchIdsError } = await supabase
+                .from('form_fields')
+                .select('id')
+                .eq('template_id', formId);
+
+            if (fetchIdsError) throw new Error(`Failed to fetch original field IDs: ${fetchIdsError.message}`);
+
+            const originalDbIds = new Set((originalFieldIdsData || []).map(f => f.id));
+            const currentDbIds = new Set(fields.map(f => f.dbId).filter(id => !!id)); // Get IDs from current state
+
+            originalDbIds.forEach(originalId => {
+                if (!currentDbIds.has(originalId)) {
+                    fieldIdsToDelete.push(originalId);
+                }
+            });
 
             // --- 3. Perform Field Updates in Supabase --- 
 
@@ -227,36 +245,24 @@ export default function EditFormPage() {
 
             // Updates next
             if (fieldsToUpdate.length > 0) {
-                // Supabase update can take an array of objects if primary key (id) is included
+                // Use upsert: updates existing rows based on `id`, inserts if `id` doesn't exist (though it shouldn't happen here)
                 const { error: updateError } = await supabase
                     .from('form_fields')
-                    .upsert(fieldsToUpdate); // Use upsert to be safe, though update should work if IDs are correct
+                    .upsert(fieldsToUpdate); 
                  if (updateError) throw new Error(`Failed to update fields: ${updateError.message}`);
             }
             
             // Additions last
             if (fieldsToAdd.length > 0) {
-                 // Update display_order for fields added based on their final position
-                 const finalOrderedFields = fields.map((field, index) => {
-                    const addedField = fieldsToAdd.find(fa => fa.label === field.fieldName.trim()); // Match by label for simplicity here
-                    if (addedField) {
-                        addedField.display_order = index;
-                        return addedField;
-                    }
-                    return null; // Should not happen if logic is correct
-                 }).filter(f => f !== null);
-
-                const { error: insertError } = await supabase
-                    .from('form_fields')
-                    .insert(finalOrderedFields as any[]); // Insert the new fields with correct order
-                 if (insertError) throw new Error(`Failed to add new fields: ${insertError.message}`);
-            }
+                 // The `fieldsToAdd` array already has the correct display_order from the initial loop
+                  const { error: insertError } = await supabase
+                      .from('form_fields')
+                      .insert(fieldsToAdd); // Insert the new fields prepared earlier
+                  if (insertError) throw new Error(`Failed to add new fields: ${insertError.message}`);
+             }
             
             // --- 4. Success --- 
             toast.success("Form template updated successfully!");
-            // Update originalFields state to reflect the saved changes
-            // setOriginalFields(JSON.parse(JSON.stringify(fields))); 
-            // Optionally redirect, or just stay on the page
             router.push(`/forms/${formId}`); // Redirect back to detail view
 
         } catch (err) {
