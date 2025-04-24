@@ -51,7 +51,7 @@ interface NewFormFieldPayload {
 }
 
 // Define allowed field types
-const FIELD_TYPES = ["text", "number", "date", "textarea"];
+const FIELD_TYPES = ["text", "number", "date", "textarea", "checkbox"];
 
 // Helper function (can be moved to utils)
 function generateInternalKey(label: string): string {

@@ -29,7 +29,7 @@ interface FormField {
 }
 
 // Define allowed field types
-const FIELD_TYPES = ["text", "number", "date", "textarea"];
+const FIELD_TYPES = ["text", "number", "date", "textarea", "checkbox"];
 
 // Helper function to generate an internal key from a label
 function generateInternalKey(label: string): string {

@@ -10,7 +10,7 @@ const openai = new OpenAI({
 interface InputField {
     label: string;
     internal_key: string;
-    field_type: string; // e.g., 'text', 'number', 'date', 'textarea'
+    field_type: string; // Now includes 'checkbox'
 }
 
 export async function POST(request: NextRequest) {
@@ -30,12 +30,19 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Construct the Prompt --- 
-    // Create a simple representation of the fields for the prompt
-    const fieldDescriptions = fields.map(f => 
-        `- ${f.label} (key: "${f.internal_key}", type: ${f.field_type})`
-    ).join('\n');
+    // Modify fieldDescriptions to include specific instructions
+    const fieldDescriptions = fields.map(f => {
+      let instruction = `- ${f.label} (key: "${f.internal_key}", type: ${f.field_type})`;
+      // <<< Add specific instruction for checkbox >>>
+      if (f.field_type === 'checkbox') {
+        instruction += ". Respond with only boolean true or false based on the transcription.";
+      }
+      // Add other specific instructions here later (e.g., for select)
+      return instruction;
+    }).join('\n');
 
-    const systemPrompt = `You are an expert data extraction assistant. Your task is to analyze the provided text transcription and extract the information corresponding to the requested form fields. Respond ONLY with a valid JSON object containing the extracted data. The keys of the JSON object MUST match the "key" provided for each field. If you cannot find information for a specific field, use null as the value for that key. Adhere strictly to the field types where possible (e.g., numbers for number fields, dates for date fields), but prioritize extracting the relevant text if the format is ambiguous. Ensure the output is a single JSON object and nothing else.`;
+    // Modify system prompt slightly to guide boolean handling
+    const systemPrompt = `You are an expert data extraction assistant. Your task is to analyze the provided text transcription and extract the information corresponding to the requested form fields. Respond ONLY with a valid JSON object containing the extracted data. The keys of the JSON object MUST match the "key" provided for each field. If you cannot find information for a specific field, use null as the value for that key. For checkbox fields requiring a boolean response, determine true or false based on the context. Adhere strictly to the field types where possible (e.g., numbers for number fields, dates for date fields), but prioritize extracting the relevant text if the format is ambiguous. Ensure the output is a single JSON object and nothing else.`;
 
     const userPrompt = `Please extract the data for the following fields from the transcription below:
 

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'; // Added Input
 import { Mic, MicOff, Loader2, BrainCircuit, Save } from 'lucide-react'; // Removed Send
 import { toast } from 'sonner'; // For notifications
 import { Textarea } from '@/components/ui/textarea'; // Added Textarea for transcription display
+import { Checkbox } from '@/components/ui/checkbox'; // <<< Add Checkbox import
 
 // TODO: Define types for template/fields if not shared
 interface FormTemplate {
@@ -34,7 +35,7 @@ enum RecordingStatus {
 }
 
 // Type for parsed results state
-type ParsedResults = Record<string, string | number | null>;
+type ParsedResults = Record<string, string | number | boolean | null>;
 
 // Combine processing states for UI simplification
 enum ProcessingState {
@@ -363,11 +364,11 @@ export default function CapturePage() {
     }
   };
 
-  // handleFieldChange remains the same
-  const handleFieldChange = (internal_key: string, value: string | number) => {
+  // Handler for updating parsed results state when user edits a field
+  const handleFieldChange = (internal_key: string, value: string | number | boolean) => { // <<< Update type to include boolean
     setParsedResults(prev => ({
-        ...prev,
-        [internal_key]: value,
+      ...prev,
+      [internal_key]: value,
     }));
   };
 
@@ -432,6 +433,67 @@ export default function CapturePage() {
     }
   };
 
+  // --- Helper to render the correct input based on field type ---
+  const renderFieldInput = (field: FormField) => {
+    const value = parsedResults[field.internal_key] ?? ''; // Default to empty string
+
+    switch (field.field_type) {
+      case 'textarea':
+        return (
+          <Textarea
+            id={field.internal_key}
+            value={typeof value === 'string' ? value : String(value)} // Ensure value is string
+            onChange={(e) => handleFieldChange(field.internal_key, e.target.value)}
+            rows={3}
+            disabled={processingState !== ProcessingState.Success}
+          />
+        );
+      case 'number':
+        return (
+          <Input
+            type="number"
+            id={field.internal_key}
+            value={typeof value === 'boolean' ? '' : value}
+            onChange={(e) => handleFieldChange(field.internal_key, e.target.valueAsNumber ?? null)}
+            disabled={processingState !== ProcessingState.Success}
+          />
+        );
+      case 'date':
+        return (
+          <Input
+            type="date"
+            id={field.internal_key}
+            value={typeof value === 'string' ? value : ''} // Ensure value is string for date input
+            onChange={(e) => handleFieldChange(field.internal_key, e.target.value)}
+            disabled={processingState !== ProcessingState.Success}
+          />
+        );
+       case 'checkbox': // <<< Add Checkbox case
+         return (
+           <div className="flex items-center h-10"> {/* Wrapper to align */} 
+             <Checkbox
+               id={field.internal_key}
+               // Ensure 'checked' prop receives a boolean
+               checked={!!value} // Coerce value to boolean (handles null/undefined/empty string)
+               onCheckedChange={(checked) => handleFieldChange(field.internal_key, checked as boolean)}
+               disabled={processingState !== ProcessingState.Success}
+             />
+           </div>
+         );
+      case 'text': // Fallback for 'text' and any other unknown types
+      default:
+        return (
+          <Input
+            type="text"
+            id={field.internal_key}
+            value={typeof value === 'string' ? value : String(value)} // Ensure value is string
+            onChange={(e) => handleFieldChange(field.internal_key, e.target.value)}
+            disabled={processingState !== ProcessingState.Success}
+          />
+        );
+    }
+  };
+
   if (loading) return <div>Loading form...</div>;
   if (fetchError) return <div className="text-red-500">Error: {fetchError}</div>;
   if (!template) return <div>Form not found.</div>;
@@ -457,26 +519,10 @@ export default function CapturePage() {
         <h2 className="text-lg font-medium">Form Fields</h2>
         {fields.length > 0 ? (
             fields.map(field => {
-                const value = parsedResults[field.internal_key] ?? ''; // Get value or default to empty string
-                const inputType = field.field_type === 'number' ? 'number' : 'text'; // Basic type mapping
-                const Component = field.field_type === 'textarea' ? Textarea : Input;
-
                 return (
                     <div key={field.id}>
                         <label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700">{field.label}</label>
-                        <Component
-                            id={field.internal_key}
-                            name={field.internal_key}
-                            value={value} // Use controlled component value
-                            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => 
-                                handleFieldChange(field.internal_key, e.target.value)
-                            }
-                            type={Component === Input ? inputType : undefined} // Set type only for Input
-                            placeholder={`Enter ${field.label}... (${field.field_type})`}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            rows={Component === Textarea ? 4 : undefined} // Add rows for Textarea
-                            disabled={processingState !== ProcessingState.Success || interactionDisabled} // Disable unless success AND not interacting
-                        />
+                        {renderFieldInput(field)}
                     </div>
                 )
             })
