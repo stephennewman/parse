@@ -128,9 +128,33 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
     - Added a "Delete Selected" button that appears when forms are selected.
     - Implemented `handleBulkDelete` function to delete selected templates and their fields after confirmation, using toasts for feedback.
     - Added `Checkbox` component using `shadcn/ui`.
+- [x] **New Field Types:**
+    - Added support for **Radio Button Group** (`radio`).
+        - Updated form editor pages (`new`, `edit`) to manage options.
+        - Updated capture page (`renderFieldInput`, `renderFieldHints`) to display radio groups.
+        - Updated parsing API prompt (`/api/parse`).
+    - Added support for **Multi-Select Checkbox Group** (`multicheckbox`).
+        - Updated form editor pages to manage options.
+        - Updated `ParsedResults` type to support `string[]`.
+        - Updated capture page (`renderFieldInput`, `renderFieldHints`, `handleMultiCheckboxChange`).
+        - Updated parsing API prompt.
+    - Added support for **Rating Scale** (`rating`).
+        - Added `rating_min`, `rating_max` columns to `form_fields` table (User action required).
+        - Updated form editor pages to manage min/max values.
+        - Updated capture page (`renderFieldInput`, `renderFieldHints`) to display a `Slider` component (`shadcn/ui`).
+        - Updated parsing API prompt.
+- [x] **Capture Page UI Enhancements:**
+    - Separated Review Fields and Transcription into Tabs using `Tabs` component (`shadcn/ui`) during the `Reviewing` phase.
+    - Updated the `Prompting` phase instructions to show field hints (options, range, format) alongside labels, similar to the `Recording` phase.
 
 ## Notes / Troubleshooting
 
+*   **[Recent Update - Date] Capture UI Enhancements:** Added Tabs to the review phase to separate fields and transcription. Updated the prompting phase to show field hints (options, ranges) before recording starts.
+*   **[Recent Update - Date] New Field Types:** Implemented Radio Buttons, Multi-Select Checkboxes, and Rating Scale (using `Slider` component).
+*   **[Recent Update - Date] Component Dependencies:** Added `Checkbox`, `RadioGroup`, `Slider`, `Tabs`, `Card` components from `shadcn/ui`.
+*   **[Recent Update - Date] Backend:** Updated `/api/parse` prompt logic to handle new field types and provide appropriate instructions to the AI.
+*   **[Recent Update - Date] Database:** Required adding `rating_min` and `rating_max` (nullable integer) columns to the `form_fields` table.
+*   **[Recent Update - Date] RLS Debugging:** Investigated and discussed RLS policy issues related to `INSERT` on `form_submissions` owned by `postgres`. Recommended using Supabase Dashboard UI for policy management.
 *   **[Recent Update - Date] Feature Added:** Implemented bulk deletion of form templates from the main forms list page.
 *   **[Recent Update - Date] Feature Added:** Implemented functionality to delete form templates from the form detail page, including associated fields.
 *   **[Recent Update] UI Fix:** Ensured outline buttons (e.g., Edit, View Submissions on form detail page) display a pointer cursor on hover for better UX by adding `cursor-pointer` class.
@@ -150,6 +174,18 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 *   **Current Workaround:** Using the deprecated `@supabase/auth-helpers-nextjs` package for client-side auth initialization.
 *   Need to update `src/app/(auth)/login/page.tsx` to use `auth-helpers`. (Completed 2024-08-23)
 *   Need to implement middleware using `auth-helpers` functions. (Completed 2024-08-23)
+*   **Form Fields:** Basic text field support within templates, storing label, type, and display order. **Updated to include Radio, Multi-Checkbox, and Rating.**
+*   **Submission Tracking:**
+    *   Viewing a list of submissions for a specific form template (`/forms/[id]/submissions`).
+*   **Capture Page Functionality:**
+    *   Implement voice recording using the browser's MediaRecorder API.
+    *   Integrate with a transcription service (e.g., Deepgram, AssemblyAI, OpenAI Whisper).
+    *   Display the final transcript (now in a separate tab).
+    *   Develop the UI/UX for associating spoken words/phrases with specific form fields.
+    *   Implement the logic to save the structured `form_data` along with the transcript/audio link to the `form_submissions` table.
+*   **Enhanced Form Fields:** Support for more field types (e.g., dropdown, checkbox, date, number) in the template editor and capture page. **(Radio, Multi-Checkbox, Rating added)**
+*   **Global Submissions View:** Create a page (`/submissions`) to view and potentially filter/search *all* submissions across different forms. Consider server-side pagination/sorting for scalability.
+*   **Dashboard/Analytics:** An overview page showing usage statistics, recent submissions, etc.
 
 ## AI Development Guidelines
 
@@ -166,7 +202,7 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
     *   Listing existing form templates (`/forms`).
     *   Detailed view of individual form templates (`/forms/[id]`) showing name, description, and associated fields.
     *   Editing existing form templates (`/forms/[id]/edit`), including adding, removing, and reordering fields.
-*   **Form Fields:** Basic text field support within templates, storing label, type, and display order.
+*   **Form Fields:** Basic text field support within templates, storing label, type, and display order. **Updated to include Radio, Multi-Checkbox, and Rating.**
 *   **Submission Tracking:**
     *   Viewing a list of submissions for a specific form template (`/forms/[id]/submissions`).
     *   The submissions list displays data dynamically based on the template's fields.
@@ -187,10 +223,10 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 *   **Capture Page Functionality:**
     *   Implement voice recording using the browser's MediaRecorder API.
     *   Integrate with a transcription service (e.g., Deepgram, AssemblyAI, OpenAI Whisper).
-    *   Display the live transcript.
+    *   Display the final transcript (now in a separate tab).
     *   Develop the UI/UX for associating spoken words/phrases with specific form fields.
     *   Implement the logic to save the structured `form_data` along with the transcript/audio link to the `form_submissions` table.
-*   **Enhanced Form Fields:** Support for more field types (e.g., dropdown, checkbox, date, number) in the template editor and capture page.
+*   **Enhanced Form Fields:** Support for more field types (e.g., dropdown, checkbox, date, number) in the template editor and capture page. **(Radio, Multi-Checkbox, Rating added)**
 *   **Global Submissions View:** Create a page (`/submissions`) to view and potentially filter/search *all* submissions across different forms. Consider server-side pagination/sorting for scalability.
 *   **Dashboard/Analytics:** An overview page showing usage statistics, recent submissions, etc.
 *   **Template/Submission Management:** Add functionality to delete form templates and individual submissions.

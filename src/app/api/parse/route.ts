@@ -11,7 +11,10 @@ interface InputField {
     label: string;
     internal_key: string;
     field_type: string; // Now includes 'checkbox'
-    options?: string[] | null; // <<< Add optional options
+    options?: string[] | null; 
+    // <<< Add optional rating range >>>
+    rating_min?: number | null;
+    rating_max?: number | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -33,18 +36,54 @@ export async function POST(request: NextRequest) {
     // --- Construct the Prompt --- 
     const fieldDescriptions = fields.map(f => {
       let instruction = `- ${f.label} (key: "${f.internal_key}", type: ${f.field_type})`;
-      if (f.field_type === 'checkbox') {
-        instruction += ". Respond with only boolean true or false based on the transcription.";
-      } else if (f.field_type === 'select' && f.options && f.options.length > 0) { // <<< Add select instruction
-        // Include the options in the instruction for the AI
-        const optionsList = JSON.stringify(f.options); 
-        instruction += `. Choose exactly ONE value from this list: ${optionsList}. Respond with only the chosen option string.`;
+      // Add specific instructions based on field type
+      switch (f.field_type) {
+          case 'checkbox':
+            instruction += ". Respond with only boolean true or false based on the transcription.";
+            break;
+          case 'select':
+          case 'radio': // Treat radio the same as select (choose one)
+            if (f.options && f.options.length > 0) {
+              const optionsList = JSON.stringify(f.options);
+              instruction += `. Choose exactly ONE value from this list: ${optionsList}. Respond with only the chosen option string.`;
+            } else {
+              instruction += ". (Configuration error: Missing options). Respond with null.";
+            }
+            break;
+          case 'multicheckbox':
+            if (f.options && f.options.length > 0) {
+              const optionsList = JSON.stringify(f.options);
+              instruction += `. Choose ZERO or MORE values from this list: ${optionsList}. Respond with an array of chosen option strings (e.g., ["Option A", "Option C"]) or an empty array [] if none apply.`;
+            } else {
+              instruction += ". (Configuration error: Missing options). Respond with an empty array [].";
+            }
+            break;
+          case 'rating':
+            if (f.rating_min != null && f.rating_max != null && f.rating_min < f.rating_max) {
+              instruction += `. Provide a single integer rating between ${f.rating_min} and ${f.rating_max} (inclusive). Respond with only the number.`;
+            } else {
+              instruction += ". (Configuration error: Invalid rating range). Respond with null.";
+            }
+            break;
+          // Add cases for other types if they need specific instructions (e.g., date format)
+          case 'date':
+             instruction += ". Respond with the date in YYYY-MM-DD format.";
+             break;
+          // Default instructions for text, textarea, number are usually sufficient
       }
       return instruction;
     }).join('\n');
 
-    // Update system prompt slightly for select clarification
-    const systemPrompt = `You are an expert data extraction assistant. Your task is to analyze the provided text transcription and extract the information corresponding to the requested form fields. Respond ONLY with a valid JSON object containing the extracted data. The keys of the JSON object MUST match the "key" provided for each field. If you cannot find information for a specific field, use null as the value for that key. For checkbox fields requiring a boolean response, determine true or false based on the context. For select fields, choose exactly ONE option from the provided list. Adhere strictly to the field types where possible. Ensure the output is a single JSON object and nothing else.`;
+    // Update system prompt slightly for new types
+    const systemPrompt = `You are an expert data extraction assistant. Your task is to analyze the provided text transcription and extract the information corresponding to the requested form fields. Respond ONLY with a valid JSON object containing the extracted data. The keys of the JSON object MUST match the "key" provided for each field. 
+- If you cannot find information for a specific field, use null as the value for that key (unless otherwise specified for the type).
+- For 'checkbox' fields: Respond with boolean true or false.
+- For 'select'/'radio' fields: Choose exactly ONE option from the provided list and respond with the string.
+- For 'multicheckbox' fields: Choose ZERO or MORE options from the provided list and respond with an array of strings (e.g., [] or ["Option A", "Option C"]).
+- For 'rating' fields: Respond with a single integer within the specified range.
+- For 'date' fields: Respond with the date string in YYYY-MM-DD format.
+- Adhere strictly to the field types where possible.
+Ensure the output is a single JSON object and nothing else.`;
 
     const userPrompt = `Please extract the data for the following fields from the transcription below:
 

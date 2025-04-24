@@ -29,6 +29,9 @@ interface FormFieldState {
   dbId?: string;
   fieldName: string;
   fieldType: string;
+  // <<< Add optional rating properties >>>
+  rating_min?: number;
+  rating_max?: number;
 }
 
 // Interface matching DB form_fields structure
@@ -40,6 +43,8 @@ interface FormField {
     field_type: string;
     display_order: number;
     options?: string[] | null;
+    rating_min?: number | null;
+    rating_max?: number | null;
 }
 
 // Interface for the payload to insert new fields
@@ -50,10 +55,12 @@ interface NewFormFieldPayload {
     field_type: string;
     display_order: number;
     options?: string[] | null;
+    rating_min?: number | null;
+    rating_max?: number | null;
 }
 
 // Define allowed field types
-const FIELD_TYPES = ["text", "number", "date", "textarea", "checkbox", "select"];
+const FIELD_TYPES = ["text", "number", "date", "textarea", "checkbox", "select", "radio", "multicheckbox", "rating"];
 
 // Helper function (can be moved to utils)
 function generateInternalKey(label: string): string {
@@ -76,9 +83,11 @@ export default function EditFormPage() {
   const [isUpdating, startTransition] = useTransition(); // Renamed from isPending for clarity
   const [error, setError] = useState<string | null>(null); // State for fetch/update errors
 
-  // Need state to store options text for select fields
+  // Need state to store options text for select/radio fields
   // Use an object keyed by field.clientId for temporary storage
-  const [selectOptionsText, setSelectOptionsText] = useState<Record<string, string>>({});
+  const [fieldOptionsText, setFieldOptionsText] = useState<Record<string, string>>({});
+  // <<< Add state for rating min/max values >>>
+  const [fieldRatingValues, setFieldRatingValues] = useState<Record<string, { min?: string; max?: string }>>({});
 
   const supabase = createClientComponentClient();
 
@@ -110,7 +119,7 @@ export default function EditFormPage() {
           // Fetch associated fields
           const { data: fieldsData, error: fieldsError } = await supabase
               .from('form_fields')
-              .select('id, label, field_type, display_order') // Fetch db id, label, type
+              .select('id, label, field_type, display_order, options, rating_min, rating_max') // Fetch db id, label, type, options, rating
               .eq('template_id', formId)
               .order('display_order', { ascending: true });
 
@@ -122,10 +131,30 @@ export default function EditFormPage() {
               dbId: field.id,                // Store the original DB ID
               fieldName: field.label,        // Map label to fieldName
               fieldType: field.field_type,   // Map field_type to fieldType
+              rating_min: field.rating_min ?? undefined, // <<< Map rating_min
+              rating_max: field.rating_max ?? undefined, // <<< Map rating_max
           }));
 
           setFields(mappedFields);
-          // setOriginalFields(JSON.parse(JSON.stringify(mappedFields))); // Removed - no longer needed
+          // <<< Initialize rating state from fetched data >>>
+          const initialRatingValues: Record<string, { min?: string; max?: string }> = {};
+          const initialOptionsText: Record<string, string> = {};
+          (fieldsData || []).forEach(field => {
+              const clientId = mappedFields.find(mf => mf.dbId === field.id)?.clientId;
+              if (clientId) {
+                  if (field.field_type === 'rating' && (field.rating_min !== null || field.rating_max !== null)) {
+                      initialRatingValues[clientId] = {
+                          min: field.rating_min?.toString() ?? '',
+                          max: field.rating_max?.toString() ?? '',
+                      };
+                  }
+                  if ((field.field_type === 'select' || field.field_type === 'radio' || field.field_type === 'multicheckbox') && field.options) {
+                      initialOptionsText[clientId] = field.options.join('\n');
+                  }
+              }
+          });
+          setFieldRatingValues(initialRatingValues);
+          setFieldOptionsText(initialOptionsText);
 
       } catch (err) {
           console.error("Error fetching form data:", err);
@@ -156,28 +185,53 @@ export default function EditFormPage() {
         field.clientId === clientId ? { ...field, [property]: value } : field
       )
     );
-    // If changing type *away* from select, clear the stored options text for that field
-    if (property === 'fieldType' && value !== 'select') {
-      setSelectOptionsText(prev => {
+    // If changing type *away* from select, radio, or multicheckbox, clear the stored options text for that field
+    if (property === 'fieldType' && value !== 'select' && value !== 'radio' && value !== 'multicheckbox') {
+      setFieldOptionsText(prev => {
         const newState = { ...prev };
         delete newState[clientId];
         return newState;
       });
     }
+    // <<< If changing type *away* from rating, clear rating values >>>
+    if (property === 'fieldType' && value !== 'rating') {
+        setFieldRatingValues(prev => {
+            const newState = { ...prev };
+            delete newState[clientId];
+            return newState;
+        });
+    }
   };
 
-  // Handler for the options textarea
-  const handleOptionsChange = (clientId: string, optionsValue: string) => {
-    setSelectOptionsText(prev => ({ ...prev, [clientId]: optionsValue }));
+  // Handler for the options textarea (renamed)
+  const handleOptionsTextChange = (clientId: string, optionsValue: string) => {
+    setFieldOptionsText(prev => ({ ...prev, [clientId]: optionsValue }));
+  };
+
+  // <<< Handler for rating min/max inputs >>>
+  const handleRatingChange = (clientId: string, type: 'min' | 'max', value: string) => {
+    setFieldRatingValues(prev => ({
+        ...prev,
+        [clientId]: {
+            ...prev[clientId],
+            [type]: value,
+        }
+    }));
   };
 
   const handleRemoveField = (clientId: string) => {
     setFields(prevFields => prevFields.filter(field => field.clientId !== clientId));
     // Also remove any stored options text for the removed field
-    setSelectOptionsText(prev => {
+    setFieldOptionsText(prev => {
       const newState = { ...prev };
       delete newState[clientId];
       return newState;
+    });
+    // <<< Also remove rating values on field removal >>>
+    setFieldRatingValues(prev => {
+        const newState = { ...prev };
+        delete newState[clientId];
+        return newState;
     });
   };
 
@@ -230,12 +284,40 @@ export default function EditFormPage() {
 
                 // <<< Prepare options payload >>>
                 let optionsPayload: string[] | null = null;
-                if (currentField.fieldType === 'select') {
-                    const optionsString = selectOptionsText[currentField.clientId] || '';
+                if (currentField.fieldType === 'select' || currentField.fieldType === 'radio' || currentField.fieldType === 'multicheckbox') {
+                    const optionsString = fieldOptionsText[currentField.clientId] || '';
                     optionsPayload = optionsString.split('\n').map(opt => opt.trim()).filter(opt => opt.length > 0);
                     if (optionsPayload.length === 0) {
-                       toast.warning(`Options cannot be empty for Select field: ${label}`);
-                       throw new Error(`Options cannot be empty for Select field: ${label}`);
+                       const fieldTypeLabel = currentField.fieldType.charAt(0).toUpperCase() + currentField.fieldType.slice(1);
+                       toast.warning(`Options cannot be empty for ${fieldTypeLabel} field: ${label}`);
+                       throw new Error(`Options cannot be empty for ${fieldTypeLabel} field: ${label}`);
+                    }
+                }
+
+                // <<< Prepare rating payload >>>
+                let ratingMinPayload: number | null = null;
+                let ratingMaxPayload: number | null = null;
+                if (currentField.fieldType === 'rating') {
+                    const ratingVals = fieldRatingValues[currentField.clientId];
+                    const minStr = ratingVals?.min?.trim();
+                    const maxStr = ratingVals?.max?.trim();
+
+                    if (!minStr || !maxStr) {
+                        toast.warning(`Rating scale must have both a Minimum and Maximum value for field: ${label}`);
+                        throw new Error(`Rating scale must have both Min and Max values for field: ${label}`);
+                    }
+                    
+                    ratingMinPayload = parseInt(minStr, 10);
+                    ratingMaxPayload = parseInt(maxStr, 10);
+                    
+                    if (isNaN(ratingMinPayload) || isNaN(ratingMaxPayload)) {
+                        toast.warning(`Rating Min/Max must be valid numbers for field: ${label}`);
+                        throw new Error(`Rating Min/Max must be valid numbers for field: ${label}`);
+                    }
+
+                    if (ratingMinPayload >= ratingMaxPayload) {
+                        toast.warning(`Rating Min must be less than Rating Max for field: ${label}`);
+                        throw new Error(`Rating Min must be less than Rating Max for field: ${label}`);
                     }
                 }
 
@@ -247,7 +329,9 @@ export default function EditFormPage() {
                         internal_key: internalKey,
                         field_type: currentField.fieldType,
                         display_order: fields.findIndex(f => f.clientId === currentField.clientId),
-                        options: optionsPayload // Add options to update payload
+                        options: optionsPayload, // Add options to update payload
+                        rating_min: ratingMinPayload, // <<< Add rating min
+                        rating_max: ratingMaxPayload, // <<< Add rating max
                     });
                 } else { // New field
                      fieldsToAdd.push({
@@ -256,7 +340,9 @@ export default function EditFormPage() {
                          internal_key: internalKey,
                          field_type: currentField.fieldType,
                          display_order: fields.findIndex(f => f.clientId === currentField.clientId),
-                         options: optionsPayload // Add options to insert payload
+                         options: optionsPayload, // Add options to insert payload
+                         rating_min: ratingMinPayload, // <<< Add rating min
+                         rating_max: ratingMaxPayload, // <<< Add rating max
                      });
                 }
             }
@@ -416,17 +502,42 @@ export default function EditFormPage() {
                       </Button>
                     </div>
 
-                    {/* <<< Conditionally render Options Textarea >>> */} 
-                    {field.fieldType === 'select' && (
-                      <div className="space-y-2 pl-2 pt-2"> {/* Indent slightly */} 
+                    {/* Conditionally render Options Textarea for 'select', 'radio', OR 'multicheckbox' */}
+                    {(field.fieldType === 'select' || field.fieldType === 'radio' || field.fieldType === 'multicheckbox') && (
+                      <div className="space-y-2 pl-2 pt-2"> {/* Indent slightly */}
                         <Label htmlFor={`field-options-${field.clientId}`}>Options (one per line)</Label>
                         <Textarea
                           id={`field-options-${field.clientId}`}
                           placeholder="Option 1\nOption 2\nOption 3"
-                          value={selectOptionsText[field.clientId] || ''}
-                          onChange={(e) => handleOptionsChange(field.clientId, e.target.value)}
+                          value={fieldOptionsText[field.clientId] || ''}
+                          onChange={(e) => handleOptionsTextChange(field.clientId, e.target.value)}
                           rows={3}
                         />
+                      </div>
+                    )}
+                    {/* <<< Conditionally render Rating Min/Max Inputs >>> */}
+                    {field.fieldType === 'rating' && (
+                      <div className="flex items-center space-x-2 pl-2 pt-2">
+                        <div className="space-y-1 w-1/2">
+                          <Label htmlFor={`field-rating-min-${field.clientId}`}>Min Value</Label>
+                          <Input
+                            id={`field-rating-min-${field.clientId}`}
+                            type="number"
+                            placeholder="e.g., 1"
+                            value={fieldRatingValues[field.clientId]?.min || ''}
+                            onChange={(e) => handleRatingChange(field.clientId, 'min', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1 w-1/2">
+                          <Label htmlFor={`field-rating-max-${field.clientId}`}>Max Value</Label>
+                          <Input
+                            id={`field-rating-max-${field.clientId}`}
+                            type="number"
+                            placeholder="e.g., 5"
+                            value={fieldRatingValues[field.clientId]?.max || ''}
+                            onChange={(e) => handleRatingChange(field.clientId, 'max', e.target.value)}
+                          />
+                        </div>
                       </div>
                     )}
                   </React.Fragment>
