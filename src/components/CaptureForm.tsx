@@ -156,7 +156,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
           audioStreamRef.current.getTracks().forEach(track => track.stop());
         }
     };
-  }, [formId, supabase]); // Depend on formId and supabase instance
+  }, [formId, supabase]); // Keep original dependencies, disable warning for stopRecording
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;

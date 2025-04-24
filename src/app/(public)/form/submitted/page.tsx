@@ -1,9 +1,9 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
+// import Link from 'next/link'; // Remove unused import
 import { CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button'; // Remove unused import
 
 export default function SubmissionSuccessPage() {
   return (
