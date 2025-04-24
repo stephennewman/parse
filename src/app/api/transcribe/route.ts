@@ -5,9 +5,6 @@ import os from 'os';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
 
-// Set ffmpeg path
-ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
-
 // Initialize OpenAI client
 // Ensure OPENAI_API_KEY is set in your .env.local file
 const openai = new OpenAI({
