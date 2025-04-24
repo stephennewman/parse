@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation'; // Removed useRouter import
+import { useParams, useRouter } from 'next/navigation'; // Re-add useRouter
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 // Import UI components as needed
 import {
@@ -12,10 +12,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'; // Import the new component
-// Removed Button import
-// import { Button } from '@/components/ui/button';
-// Removed icon imports
-// import { Edit } from 'lucide-react';
+import { Button } from '@/components/ui/button'; // Re-add Button import
+import { Edit, List, Link2, Copy, ExternalLink } from 'lucide-react'; // Re-add Edit, List, Link2, Copy icons, Added ExternalLink
+import { Input } from '@/components/ui/input'; // Added Input
+import { Label } from '@/components/ui/label'; // Added Label
+import { toast } from 'sonner'; // Added toast
 // Define types if not already globally available
 interface FormTemplate {
   id: string;
@@ -32,7 +33,8 @@ interface FormField {
 }
 
 export default function FormDetailPage() {
-  const params = useParams(); // Get route parameters { id: '...' }
+  const params = useParams();
+  const router = useRouter(); // Initialize router
   const id = params.id as string; // Extract the id (ensure it's a string)
 
   const [template, setTemplate] = useState<FormTemplate | null>(null);
@@ -40,6 +42,9 @@ export default function FormDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClientComponentClient();
+
+  // State for the capture link
+  const [captureLink, setCaptureLink] = useState("");
 
   useEffect(() => {
     if (!id) {
@@ -73,6 +78,12 @@ export default function FormDetailPage() {
 
         if (fieldsError) throw fieldsError;
         setFields(fieldsData || []);
+
+        // Construct capture link once component mounts and has window access
+        if (typeof window !== 'undefined') {
+          const link = `${window.location.origin}/capture/${id}`;
+          setCaptureLink(link);
+        }
 
       } catch (err) { // Apply same error typing fix
         let message = "Failed to load form details.";
@@ -114,6 +125,25 @@ export default function FormDetailPage() {
       ]
     : [{ label: "Forms", href: "/forms" }]; // Fallback if template is not loaded yet
 
+  // --- Copy Link Handler ---
+  const handleCopyLink = () => {
+    if (!captureLink) return;
+    navigator.clipboard.writeText(captureLink)
+      .then(() => {
+        toast.success("Capture link copied to clipboard!");
+      })
+      .catch(err => {
+        console.error("Failed to copy link: ", err);
+        toast.error("Failed to copy link.");
+      });
+  };
+
+  // --- Open Link Handler ---
+  const handleOpenLink = () => {
+    if (!captureLink) return;
+    window.open(captureLink, '_blank', 'noopener,noreferrer');
+  };
+
   // Render Form Details
   return (
     <div className="space-y-6">
@@ -121,17 +151,27 @@ export default function FormDetailPage() {
       <Breadcrumbs items={breadcrumbItems} />
 
       {/* Header section with title and action buttons */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-wrap justify-between items-center gap-4">
         <h1 className="text-2xl font-semibold">{template?.name || 'Form Details'}</h1>
-        {/* Action Buttons Group - Empty for now */}
-        <div className="flex space-x-2">
-           {/* --- Ensure Edit Button is removed or commented out --- */}
-           {/*
-           <Button variant="outline" size="sm" onClick={() => router.push(`/forms/${id}/edit`)}>
-             <Edit className="mr-2 h-4 w-4" /> Edit
-           </Button>
-           */}
-           {/* --- End of removed Edit button --- */}
+        {/* Action Buttons Group - Now includes link sharing */}
+        <div className="flex items-center space-x-2 flex-wrap gap-2">
+          {/* Existing Buttons */}
+          <Button variant="outline" size="sm" onClick={() => router.push(`/forms/${id}/edit`)}>
+            <Edit className="mr-2 h-4 w-4" /> Edit
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push(`/forms/${id}/submissions`)}>
+            <List className="mr-2 h-4 w-4" /> View Submissions
+          </Button>
+          
+          {/* Separator (Optional, for visual distinction) */}
+          <div className="h-6 w-px bg-border" aria-hidden="true"></div>
+
+          {/* View Capture Form Button */} 
+          <Button variant="outline" size="sm" onClick={handleOpenLink} disabled={!captureLink}>
+            {/* Optional: Add an icon like ExternalLink if desired */}
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Form
+          </Button>
         </div>
       </div>
 

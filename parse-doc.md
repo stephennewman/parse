@@ -138,5 +138,51 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 
 - Before writing or modifying code, please ensure you have an up-to-date understanding of the codebase structure. If necessary, index or review key folders (like `src/components`, `src/app`, `src/lib`) to gain context.
 
+## Project Status Summary
+
+### Completed Features:
+
+*   **Core Application Layout:** Implemented a standard SaaS layout (`AppLayout`) with a sidebar and header using Next.js.
+*   **Authentication:** Integrated Supabase for user authentication (login, signup, session management).
+*   **Form Template Management:**
+    *   Creation of new form templates (`/forms/new`) with name and description.
+    *   Listing existing form templates (`/forms`).
+    *   Detailed view of individual form templates (`/forms/[id]`) showing name, description, and associated fields.
+    *   Editing existing form templates (`/forms/[id]/edit`), including adding, removing, and reordering fields.
+*   **Form Fields:** Basic text field support within templates, storing label, type, and display order.
+*   **Submission Tracking:**
+    *   Viewing a list of submissions for a specific form template (`/forms/[id]/submissions`).
+    *   The submissions list displays data dynamically based on the template's fields.
+    *   Client-side sorting implemented for the submissions table by clicking column headers.
+    *   Viewing details of an individual submission (`/submissions/[id]`).
+*   **Capture Page Access:**
+    *   Generated a unique capture URL for each form template.
+    *   Added a "View Form" button on the form detail page to open the capture link in a new tab.
+*   **UI/UX:**
+    *   Utilized `shadcn/ui` for components (Cards, Buttons, Tables, Input, Label, Toasts, etc.).
+    *   Implemented Breadcrumbs for better navigation.
+    *   Added toast notifications for user feedback (e.g., link copied).
+*   **Basic Capture Page:** Set up the route and basic structure for the voice capture page (`/capture/[id]`).
+
+### Potential Next Steps / Areas for Development:
+
+*   **Core Parsing Logic:** Implement the primary feature: processing transcribed voice input and mapping it to the structured fields defined in the form template. This likely involves AI/NLP integration.
+*   **Capture Page Functionality:**
+    *   Implement voice recording using the browser's MediaRecorder API.
+    *   Integrate with a transcription service (e.g., Deepgram, AssemblyAI, OpenAI Whisper).
+    *   Display the live transcript.
+    *   Develop the UI/UX for associating spoken words/phrases with specific form fields.
+    *   Implement the logic to save the structured `form_data` along with the transcript/audio link to the `form_submissions` table.
+*   **Enhanced Form Fields:** Support for more field types (e.g., dropdown, checkbox, date, number) in the template editor and capture page.
+*   **Global Submissions View:** Create a page (`/submissions`) to view and potentially filter/search *all* submissions across different forms. Consider server-side pagination/sorting for scalability.
+*   **Dashboard/Analytics:** An overview page showing usage statistics, recent submissions, etc.
+*   **Template/Submission Management:** Add functionality to delete form templates and individual submissions.
+*   **User Management:** Implement roles or permissions if required for multi-user scenarios.
+*   **Error Handling & Robustness:** Improve error handling across the application and add more comprehensive loading states.
+*   **Testing:** Implement unit and integration tests.
+*   **Deployment:** Configure deployment pipelines (e.g., to Vercel).
+*   **UI Refinements:** Continue polishing the user interface and experience.
+*   **`/forms` Page Enhancements:** Implement sorting/filtering or a table view for the main forms list page, as previously discussed.
+
 ---
 *(This document will be updated frequently)* 
