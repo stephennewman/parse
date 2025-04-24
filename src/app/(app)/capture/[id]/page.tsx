@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/select"; // <<< Add Select imports
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'; // <<< Add RadioGroup imports
 import { Label } from '@/components/ui/label'; // <<< Add Label import
-import { Slider } from "@/components/ui/custom-slider"; // <<< Update import path
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // <<< Add Tabs imports
+import { Slider } from "@/components/ui/slider"; // <<< Revert import path
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // <<< Revert import path
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"; // <<< Add Card imports
 
 // TODO: Define types for template/fields if not shared
