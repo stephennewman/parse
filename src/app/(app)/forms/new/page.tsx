@@ -134,11 +134,11 @@ export default function NewFormPage() {
             }
             templateId = templateData.id;
 
-            const fieldsToInsert: FormFieldPayload[] = fields.map((field, _index) => {
+            const fieldsToInsert: FormFieldPayload[] = fields.map((field) => {
               const label = field.fieldName.trim();
               if (!label) {
-                 toast.warning(`Field name cannot be empty (check field #${_index + 1}).`);
-                 throw new Error(`Field name cannot be empty (check field #${_index + 1}).`);
+                 toast.warning(`Field name cannot be empty (check field #${fields.indexOf(field) + 1}).`);
+                 throw new Error(`Field name cannot be empty (check field #${fields.indexOf(field) + 1}).`);
               }
               const internalKey = generateInternalKey(label);
               if (!internalKey) {
@@ -161,7 +161,7 @@ export default function NewFormPage() {
                   label: label,
                   internal_key: internalKey,
                   field_type: field.fieldType,
-                  display_order: _index,
+                  display_order: fields.indexOf(field),
                   options: optionsPayload
               };
             });
@@ -237,7 +237,7 @@ export default function NewFormPage() {
                   Add fields using the button below.
                 </div>
               ) : (
-                fields.map((field, _index) => (
+                fields.map((field) => (
                   <React.Fragment key={field.id}>
                     <div className="flex items-end gap-4 p-4 border rounded-md bg-gray-50">
                       <div className="flex-grow space-y-2">

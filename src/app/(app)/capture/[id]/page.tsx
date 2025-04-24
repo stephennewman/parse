@@ -69,6 +69,13 @@ const loadingMessages = [
     "Consulting the digital oracle...",
 ];
 
+// <<< Add Interface for Submission Payload >>>
+interface SubmissionPayload {
+  template_id: string;
+  form_data: ParsedResults;
+  user_id?: string | null; // Optional user_id
+}
+
 export default function CapturePage() {
   const params = useParams();
   const router = useRouter(); // For potential redirect
@@ -390,23 +397,22 @@ export default function CapturePage() {
 
     try {
       // 1. Get User ID (Optional)
-      let userId: string | null = null; // <<< Initialize userId as null
-      const { data: { session } /* removed sessionError check */ } = await supabase.auth.getSession();
-      if (session?.user) { // <<< Check if session and user exist
-        userId = session.user.id; // <<< Set userId only if logged in
+      let userId: string | null = null;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        userId = session.user.id;
       }
-      // No error thrown if not logged in
 
-      // 2. Prepare payload (conditionally include user_id)
-      const submissionPayload: any = {
+      // 2. Prepare payload (using the new interface)
+      const submissionPayload: SubmissionPayload = {
           template_id: id,
           form_data: parsedResults,
       };
-      if (userId) { // <<< Only add user_id if it's not null
+      if (userId) {
           submissionPayload.user_id = userId;
       }
 
-      // 3. Insert into form_submissions and select the new ID
+      // 3. Insert into form_submissions
       const { data: submissionData, error: insertError } = await supabase
         .from('form_submissions')
         .insert([submissionPayload]) // <<< Use the prepared payload
