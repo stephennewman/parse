@@ -705,10 +705,6 @@ export default function CapturePage() {
 
   const isRecording = recordingStatus === RecordingStatus.Recording;
   const isRequestingMic = recordingStatus === RecordingStatus.RequestingPermission;
-  // Combine processing flags
-  const isProcessing = 
-      processingState === ProcessingState.Transcribing || 
-      processingState === ProcessingState.Parsing;
   // Save button appears only on review phase and not currently saving
   const showSaveButton = currentPhase === CapturePhase.Reviewing && !isSaving;
   // General interaction disable flag
