@@ -156,6 +156,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
           audioStreamRef.current.getTracks().forEach(track => track.stop());
         }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId, supabase]); // Keep original dependencies, disable warning for stopRecording
 
   useEffect(() => {

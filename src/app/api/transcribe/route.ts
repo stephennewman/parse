@@ -63,13 +63,11 @@ export async function POST(request: NextRequest) {
 
     // --- Transcribe Converted File --- 
     console.log(`Sending converted file to OpenAI: ${tempOutputPath}`);
-    let transcription;
-    
     const response = await openai.audio.transcriptions.create({
         model: 'whisper-1',
-        file: fs.createReadStream(tempOutputPath),
+        file: fs.createReadStream(tempOutputPath!),
     });
-    transcription = response.text;
+    const transcription = response.text;
     console.log("Transcription successful.");
 
     return NextResponse.json({ transcription });
