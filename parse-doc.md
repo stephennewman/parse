@@ -115,8 +115,18 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
     - Modified `handleSaveSubmission` to retrieve the new submission ID.
     - Redirected user to the `/submissions/[id]` page upon successful save.
 
+## Phase 4 Progress (Feature Enhancements - [Current Date])
+
+- [x] **Delete Form Template:** 
+    - Added a "Delete" button to the form detail page (`/forms/[id]`).
+    - Implemented `handleDeleteTemplate` function to delete the template and its associated fields from Supabase after confirmation.
+    - Added user feedback (toasts) and redirects upon success/failure.
+    - Styled the delete button with a red outline.
+
 ## Notes / Troubleshooting
 
+*   **[Recent Update - Date] Feature Added:** Implemented functionality to delete form templates from the form detail page, including associated fields.
+*   **[Recent Update] UI Fix:** Ensured outline buttons (e.g., Edit, View Submissions on form detail page) display a pointer cursor on hover for better UX by adding `cursor-pointer` class.
 *   **[Update Date: 2024-08-26] V1 Voice Capture Complete:** Implemented end-to-end flow for recording voice, transcribing with Whisper, parsing with GPT, reviewing/editing results, saving to DB, and viewing the saved submission. Streamlined the processing steps after recording stop. Added dynamic loading indicators.
 *   **[Update Date: 2024-08-26] Dependency Added:** Installed `date-fns` for formatting submission timestamps.
 *   **[Update Date: 2024-08-26] DB Schema Fix:** Corrected Supabase insert call in `handleSaveSubmission` to use `form_data` column name instead of `data`.
