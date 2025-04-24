@@ -78,9 +78,9 @@ export default function FormDetailPage() {
         if (fieldsError) throw fieldsError;
         setFields(fieldsData || []);
 
-        // Construct capture link once component mounts and has window access
+        // Construct capture link using the NEW /form/ path
         if (typeof window !== 'undefined') {
-          const link = `${window.location.origin}/capture/${id}`;
+          const link = `${window.location.origin}/form/${id}`;
           setCaptureLink(link);
         }
 

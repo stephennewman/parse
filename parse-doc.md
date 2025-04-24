@@ -117,6 +117,14 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 
 ## Phase 4 Progress (Feature Enhancements - [Current Date: 2024-08-27])
 
+- [x] **Public Form Capture:**
+    - Created `(public)` route group and simple layout (`src/app/(public)/layout.tsx`).
+    - Refactored core capture logic into reusable `src/components/CaptureForm.tsx` component.
+    - Simplified authenticated capture page (`/capture/[id]`) to use `CaptureForm`.
+    - Created public capture page (`/form/[id]`) using `CaptureForm` with `isPublic=true`.
+    - Implemented save logic to handle anonymous submissions (`user_id` is NULL).
+    - Added public success/thank you page (`/form/submitted`) and redirect.
+    - Updated "View Form" link on form details page to point to `/form/[id]`.
 - [x] **Dashboard Implementation (`/`):**
     - Created a new dashboard page at the root (`/`) after resolving path conflicts.
     - Displays key stats (Total Forms, Total Submissions) using `Card` components.
@@ -158,9 +166,12 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 - [x] **Capture Page UI Enhancements:**
     - ~~Separated Review Fields and Transcription into Tabs using `Tabs` component (`shadcn/ui`) during the `Reviewing` phase.~~ (Temporarily removed due to Vercel build issue - see Notes)
     - Updated the `Prompting` phase instructions to show field hints (options, range, format) alongside labels, similar to the `Recording` phase.
+    - Added `cursor-pointer` style to Record/Stop button.
 
 ## Notes / Troubleshooting
 
+*   **[2024-08-27] Public Form Submission:** Implemented public-facing form capture. This involved creating a separate `(public)` route group/layout, refactoring the capture logic into `CaptureForm.tsx`, modifying save logic to allow NULL `user_id`, creating a thank you page, and updating the form share link. Requires `user_id` column in `form_submissions` to be nullable and appropriate RLS policy allowing anonymous inserts.
+*   **[2024-08-27] Build Fixes:** Resolved Vercel build failures caused by unused imports leftover from refactoring and removing the trend chart.
 *   **[2024-08-27] Dashboard & UI Updates:**
     - Created the main Dashboard page (`src/app/(app)/page.tsx`) displaying stats, recent submissions, and quick actions. Resolved conflict with pre-existing `src/app/page.tsx` by deleting the latter.
     - Attempted to add a `recharts` line chart for submission trends. Encountered persistent `Module not found: recharts` errors despite install attempts and troubleshooting `shadcn/ui add charts`. Removed the chart feature for now.
