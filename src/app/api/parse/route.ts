@@ -11,6 +11,7 @@ interface InputField {
     label: string;
     internal_key: string;
     field_type: string; // Now includes 'checkbox'
+    options?: string[] | null; // <<< Add optional options
 }
 
 export async function POST(request: NextRequest) {
@@ -30,19 +31,20 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Construct the Prompt --- 
-    // Modify fieldDescriptions to include specific instructions
     const fieldDescriptions = fields.map(f => {
       let instruction = `- ${f.label} (key: "${f.internal_key}", type: ${f.field_type})`;
-      // <<< Add specific instruction for checkbox >>>
       if (f.field_type === 'checkbox') {
         instruction += ". Respond with only boolean true or false based on the transcription.";
+      } else if (f.field_type === 'select' && f.options && f.options.length > 0) { // <<< Add select instruction
+        // Include the options in the instruction for the AI
+        const optionsList = JSON.stringify(f.options); 
+        instruction += `. Choose exactly ONE value from this list: ${optionsList}. Respond with only the chosen option string.`;
       }
-      // Add other specific instructions here later (e.g., for select)
       return instruction;
     }).join('\n');
 
-    // Modify system prompt slightly to guide boolean handling
-    const systemPrompt = `You are an expert data extraction assistant. Your task is to analyze the provided text transcription and extract the information corresponding to the requested form fields. Respond ONLY with a valid JSON object containing the extracted data. The keys of the JSON object MUST match the "key" provided for each field. If you cannot find information for a specific field, use null as the value for that key. For checkbox fields requiring a boolean response, determine true or false based on the context. Adhere strictly to the field types where possible (e.g., numbers for number fields, dates for date fields), but prioritize extracting the relevant text if the format is ambiguous. Ensure the output is a single JSON object and nothing else.`;
+    // Update system prompt slightly for select clarification
+    const systemPrompt = `You are an expert data extraction assistant. Your task is to analyze the provided text transcription and extract the information corresponding to the requested form fields. Respond ONLY with a valid JSON object containing the extracted data. The keys of the JSON object MUST match the "key" provided for each field. If you cannot find information for a specific field, use null as the value for that key. For checkbox fields requiring a boolean response, determine true or false based on the context. For select fields, choose exactly ONE option from the provided list. Adhere strictly to the field types where possible. Ensure the output is a single JSON object and nothing else.`;
 
     const userPrompt = `Please extract the data for the following fields from the transcription below:
 

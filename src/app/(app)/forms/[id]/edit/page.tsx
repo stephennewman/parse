@@ -39,6 +39,7 @@ interface FormField {
     internal_key: string;
     field_type: string;
     display_order: number;
+    options?: string[] | null;
 }
 
 // Interface for the payload to insert new fields
@@ -48,10 +49,11 @@ interface NewFormFieldPayload {
     internal_key: string;
     field_type: string;
     display_order: number;
+    options?: string[] | null;
 }
 
 // Define allowed field types
-const FIELD_TYPES = ["text", "number", "date", "textarea", "checkbox"];
+const FIELD_TYPES = ["text", "number", "date", "textarea", "checkbox", "select"];
 
 // Helper function (can be moved to utils)
 function generateInternalKey(label: string): string {
@@ -73,6 +75,10 @@ export default function EditFormPage() {
   const [loading, setLoading] = useState(true); // State for initial data fetch
   const [isUpdating, startTransition] = useTransition(); // Renamed from isPending for clarity
   const [error, setError] = useState<string | null>(null); // State for fetch/update errors
+
+  // Need state to store options text for select fields
+  // Use an object keyed by field.clientId for temporary storage
+  const [selectOptionsText, setSelectOptionsText] = useState<Record<string, string>>({});
 
   const supabase = createClientComponentClient();
 
@@ -150,10 +156,29 @@ export default function EditFormPage() {
         field.clientId === clientId ? { ...field, [property]: value } : field
       )
     );
+    // If changing type *away* from select, clear the stored options text for that field
+    if (property === 'fieldType' && value !== 'select') {
+      setSelectOptionsText(prev => {
+        const newState = { ...prev };
+        delete newState[clientId];
+        return newState;
+      });
+    }
+  };
+
+  // Handler for the options textarea
+  const handleOptionsChange = (clientId: string, optionsValue: string) => {
+    setSelectOptionsText(prev => ({ ...prev, [clientId]: optionsValue }));
   };
 
   const handleRemoveField = (clientId: string) => {
     setFields(prevFields => prevFields.filter(field => field.clientId !== clientId));
+    // Also remove any stored options text for the removed field
+    setSelectOptionsText(prev => {
+      const newState = { ...prev };
+      delete newState[clientId];
+      return newState;
+    });
   };
 
   const handleUpdateTemplate = async () => {
@@ -203,14 +228,26 @@ export default function EditFormPage() {
                     throw new Error(`Could not generate valid internal key for field: ${label}`);
                 }
 
-                if (currentField.dbId) { // Existing field - prepare for potential update via upsert
+                // <<< Prepare options payload >>>
+                let optionsPayload: string[] | null = null;
+                if (currentField.fieldType === 'select') {
+                    const optionsString = selectOptionsText[currentField.clientId] || '';
+                    optionsPayload = optionsString.split('\n').map(opt => opt.trim()).filter(opt => opt.length > 0);
+                    if (optionsPayload.length === 0) {
+                       toast.warning(`Options cannot be empty for Select field: ${label}`);
+                       throw new Error(`Options cannot be empty for Select field: ${label}`);
+                    }
+                }
+
+                if (currentField.dbId) { // Existing field
                     fieldsToUpdate.push({
                         id: currentField.dbId,
                         template_id: formId,
                         label: label,
                         internal_key: internalKey,
                         field_type: currentField.fieldType,
-                        display_order: fields.findIndex(f => f.clientId === currentField.clientId)
+                        display_order: fields.findIndex(f => f.clientId === currentField.clientId),
+                        options: optionsPayload // Add options to update payload
                     });
                 } else { // New field
                      fieldsToAdd.push({
@@ -218,7 +255,8 @@ export default function EditFormPage() {
                          label: label,
                          internal_key: internalKey,
                          field_type: currentField.fieldType,
-                         display_order: fields.findIndex(f => f.clientId === currentField.clientId)
+                         display_order: fields.findIndex(f => f.clientId === currentField.clientId),
+                         options: optionsPayload // Add options to insert payload
                      });
                 }
             }
@@ -338,44 +376,60 @@ export default function EditFormPage() {
                 </div>
               ) : (
                 fields.map((field, index) => (
-                  <div key={field.clientId} className="flex items-end space-x-2">
-                    <div className="flex-grow space-y-2">
-                      <Label htmlFor={`field-name-${field.clientId}`}>Field Name #{index + 1}</Label>
-                      <Input
-                        id={`field-name-${field.clientId}`}
-                        placeholder="e.g., Full Name"
-                        value={field.fieldName}
-                        onChange={(e) => handleFieldChange(field.clientId, 'fieldName', e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={`field-type-${field.clientId}`}>Type</Label>
-                      <Select
-                        value={field.fieldType}
-                        onValueChange={(value) => handleFieldChange(field.clientId, 'fieldType', value)}
+                  <React.Fragment key={field.clientId}>
+                    <div className="flex items-end space-x-2">
+                      <div className="flex-grow space-y-2">
+                        <Label htmlFor={`field-name-${field.clientId}`}>Field Name #{index + 1}</Label>
+                        <Input
+                          id={`field-name-${field.clientId}`}
+                          placeholder="e.g., Full Name"
+                          value={field.fieldName}
+                          onChange={(e) => handleFieldChange(field.clientId, 'fieldName', e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`field-type-${field.clientId}`}>Type</Label>
+                        <Select
+                          value={field.fieldType}
+                          onValueChange={(value) => handleFieldChange(field.clientId, 'fieldType', value)}
+                        >
+                          <SelectTrigger id={`field-type-${field.clientId}`} className="w-[120px]">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FIELD_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveField(field.clientId)}
+                        aria-label="Remove field"
+                        className="cursor-pointer"
                       >
-                        <SelectTrigger id={`field-type-${field.clientId}`} className="w-[120px]">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FIELD_TYPES.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveField(field.clientId)}
-                      aria-label="Remove field"
-                      className="cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+
+                    {/* <<< Conditionally render Options Textarea >>> */} 
+                    {field.fieldType === 'select' && (
+                      <div className="space-y-2 pl-2 pt-2"> {/* Indent slightly */} 
+                        <Label htmlFor={`field-options-${field.clientId}`}>Options (one per line)</Label>
+                        <Textarea
+                          id={`field-options-${field.clientId}`}
+                          placeholder="Option 1\nOption 2\nOption 3"
+                          value={selectOptionsText[field.clientId] || ''}
+                          onChange={(e) => handleOptionsChange(field.clientId, e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </div>

@@ -10,6 +10,13 @@ import { Mic, MicOff, Loader2, BrainCircuit, Save } from 'lucide-react'; // Remo
 import { toast } from 'sonner'; // For notifications
 import { Textarea } from '@/components/ui/textarea'; // Added Textarea for transcription display
 import { Checkbox } from '@/components/ui/checkbox'; // <<< Add Checkbox import
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // <<< Add Select imports
 
 // TODO: Define types for template/fields if not shared
 interface FormTemplate {
@@ -22,6 +29,7 @@ interface FormField {
   internal_key: string; // Need the key for mapping results
   field_type: string;
   display_order: number;
+  options?: string[] | null; // <<< Add options property
 }
 
 // Enum for recording status
@@ -103,10 +111,10 @@ export default function CapturePage() {
             if (!tData) throw new Error("Form template not found");
             setTemplate(tData);
 
-            // Fetch fields (label, internal_key, type, order)
+            // Fetch fields (label, internal_key, type, order, OPTIONS)
             const { data: fData, error: fError } = await supabase
                 .from('form_fields')
-                .select('id, label, internal_key, field_type, display_order')
+                .select('id, label, internal_key, field_type, display_order, options') // <<< Add options
                 .eq('template_id', id)
                 .order('display_order', { ascending: true });
             if (fError) throw fError;
@@ -435,7 +443,7 @@ export default function CapturePage() {
 
   // --- Helper to render the correct input based on field type ---
   const renderFieldInput = (field: FormField) => {
-    const value = parsedResults[field.internal_key] ?? ''; // Default to empty string
+    const value = parsedResults[field.internal_key] ?? '';
 
     switch (field.field_type) {
       case 'textarea':
@@ -468,7 +476,7 @@ export default function CapturePage() {
             disabled={processingState !== ProcessingState.Success}
           />
         );
-       case 'checkbox': // <<< Add Checkbox case
+       case 'checkbox':
          return (
            <div className="flex items-center h-10"> {/* Wrapper to align */} 
              <Checkbox
@@ -479,6 +487,25 @@ export default function CapturePage() {
                disabled={processingState !== ProcessingState.Success}
              />
            </div>
+         );
+       case 'select': // <<< Add Select case
+         return (
+           <Select
+             value={typeof value === 'string' ? value : ''} // Select expects string value
+             onValueChange={(selectedValue) => handleFieldChange(field.internal_key, selectedValue)}
+             disabled={processingState !== ProcessingState.Success}
+           >
+             <SelectTrigger id={field.internal_key}>
+               <SelectValue placeholder={`Select ${field.label}...`} />
+             </SelectTrigger>
+             <SelectContent>
+               {(field.options || []).map((option) => (
+                 <SelectItem key={option} value={option}>
+                   {option}
+                 </SelectItem>
+               ))}
+             </SelectContent>
+           </Select>
          );
       case 'text': // Fallback for 'text' and any other unknown types
       default:

@@ -22,14 +22,23 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { toast } from "sonner";
 
-interface FormField {
+interface FormFieldState {
   id: string;
   fieldName: string;
   fieldType: string;
 }
 
+interface FormFieldPayload {
+  template_id: string;
+  label: string;
+  internal_key: string;
+  field_type: string;
+  display_order: number;
+  options?: string[] | null;
+}
+
 // Define allowed field types
-const FIELD_TYPES = ["text", "number", "date", "textarea", "checkbox"];
+const FIELD_TYPES = ["text", "number", "date", "textarea", "checkbox", "select"];
 
 // Helper function to generate an internal key from a label
 function generateInternalKey(label: string): string {
@@ -43,7 +52,8 @@ function generateInternalKey(label: string): string {
 export default function NewFormPage() {
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [fields, setFields] = useState<FormField[]>([]);
+  const [fields, setFields] = useState<FormFieldState[]>([]);
+  const [selectOptionsText, setSelectOptionsText] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -60,16 +70,32 @@ export default function NewFormPage() {
     ]);
   };
 
-  const handleFieldChange = (id: string, property: keyof FormField, value: string) => {
+  const handleFieldChange = (id: string, property: keyof FormFieldState, value: string) => {
     setFields(prevFields =>
       prevFields.map(field =>
         field.id === id ? { ...field, [property]: value } : field
       )
     );
+    if (property === 'fieldType' && value !== 'select') {
+      setSelectOptionsText(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+    }
+  };
+
+  const handleOptionsChange = (id: string, optionsValue: string) => {
+    setSelectOptionsText(prev => ({ ...prev, [id]: optionsValue }));
   };
 
   const handleRemoveField = (id: string) => {
     setFields(prevFields => prevFields.filter(field => field.id !== id));
+    setSelectOptionsText(prev => {
+      const newState = { ...prev };
+      delete newState[id];
+      return newState;
+    });
   };
 
   const handleSaveTemplate = async () => {
@@ -108,7 +134,7 @@ export default function NewFormPage() {
             }
             templateId = templateData.id;
 
-            const fieldsToInsert = fields.map((field, _index) => {
+            const fieldsToInsert: FormFieldPayload[] = fields.map((field, _index) => {
               const label = field.fieldName.trim();
               if (!label) {
                  toast.warning(`Field name cannot be empty (check field #${_index + 1}).`);
@@ -119,12 +145,24 @@ export default function NewFormPage() {
                   toast.warning(`Could not generate valid internal key for field: ${label}`);
                   throw new Error(`Could not generate valid internal key for field: ${label}`);
               }
+              
+              let optionsPayload: string[] | null = null;
+              if (field.fieldType === 'select') {
+                  const optionsString = selectOptionsText[field.id] || '';
+                  optionsPayload = optionsString.split('\n').map(opt => opt.trim()).filter(opt => opt.length > 0);
+                  if (optionsPayload.length === 0) {
+                     toast.warning(`Options cannot be empty for Select field: ${label}`);
+                     throw new Error(`Options cannot be empty for Select field: ${label}`);
+                  }
+              }
+
               return {
-                  template_id: templateId,
+                  template_id: templateId as string,
                   label: label,
                   internal_key: internalKey,
                   field_type: field.fieldType,
                   display_order: _index,
+                  options: optionsPayload
               };
             });
 
@@ -199,46 +237,60 @@ export default function NewFormPage() {
                   Add fields using the button below.
                 </div>
               ) : (
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 fields.map((field, _index) => (
-                  <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md bg-gray-50">
-                    <div className="flex-grow space-y-2">
-                      <Label htmlFor={`field-name-${field.id}`}>Field Name</Label>
-                      <Input
-                        id={`field-name-${field.id}`}
-                        placeholder="e.g., Full Name"
-                        value={field.fieldName}
-                        onChange={(e) => handleFieldChange(field.id, 'fieldName', e.target.value)}
-                      />
-                    </div>
-                    <div className="w-1/3 space-y-2">
-                      <Label htmlFor={`field-type-${field.id}`}>Field Type</Label>
-                      <Select
-                        value={field.fieldType}
-                        onValueChange={(value) => handleFieldChange(field.id, 'fieldType', value)}
+                  <React.Fragment key={field.id}>
+                    <div className="flex items-end gap-4 p-4 border rounded-md bg-gray-50">
+                      <div className="flex-grow space-y-2">
+                        <Label htmlFor={`field-name-${field.id}`}>Field Name</Label>
+                        <Input
+                          id={`field-name-${field.id}`}
+                          placeholder="e.g., Full Name"
+                          value={field.fieldName}
+                          onChange={(e) => handleFieldChange(field.id, 'fieldName', e.target.value)}
+                        />
+                      </div>
+                      <div className="w-1/3 space-y-2">
+                        <Label htmlFor={`field-type-${field.id}`}>Field Type</Label>
+                        <Select
+                          value={field.fieldType}
+                          onValueChange={(value) => handleFieldChange(field.id, 'fieldType', value)}
+                        >
+                          <SelectTrigger id={`field-type-${field.id}`}>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FIELD_TYPES.map(type => (
+                              <SelectItem key={type} value={type}>
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => handleRemoveField(field.id)}
                       >
-                        <SelectTrigger id={`field-type-${field.id}`}>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FIELD_TYPES.map(type => (
-                            <SelectItem key={type} value={type}>
-                              {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Remove field</span>
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => handleRemoveField(field.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Remove field</span>
-                    </Button>
-                  </div>
+
+                    {field.fieldType === 'select' && (
+                      <div className="space-y-2 pl-4 pt-2 border-l-2 border-gray-200 ml-2">
+                        <Label htmlFor={`field-options-${field.id}`}>Options (one per line)</Label>
+                        <Textarea
+                          id={`field-options-${field.id}`}
+                          placeholder="Option 1\nOption 2\nOption 3"
+                          value={selectOptionsText[field.id] || ''}
+                          onChange={(e) => handleOptionsChange(field.id, e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </div>
