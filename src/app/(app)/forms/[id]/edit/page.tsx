@@ -102,7 +102,7 @@ export default function EditFormPage() {
 
           setFields(mappedFields);
           // Deep copy for original state comparison during update
-          setOriginalFields(JSON.parse(JSON.stringify(mappedFields))); 
+          // setOriginalFields(JSON.parse(JSON.stringify(mappedFields))); // Original state potentially not needed or handled differently
 
       } catch (err) {
           console.error("Error fetching form data:", err);
@@ -166,7 +166,6 @@ export default function EditFormPage() {
             if (templateUpdateError) throw new Error(`Failed to update template details: ${templateUpdateError.message}`);
 
             // --- 2. Calculate Field Differences --- 
-            const currentFieldsMap = new Map(fields.map(f => [f.clientId, f]));
             const originalFieldsMap = new Map(originalFields.map(f => [f.dbId, f])); // Use dbId for original map
 
             const fieldsToAdd: any[] = [];
@@ -256,7 +255,7 @@ export default function EditFormPage() {
             // --- 4. Success --- 
             toast.success("Form template updated successfully!");
             // Update originalFields state to reflect the saved changes
-            setOriginalFields(JSON.parse(JSON.stringify(fields))); 
+            // setOriginalFields(JSON.parse(JSON.stringify(fields))); 
             // Optionally redirect, or just stay on the page
             router.push(`/forms/${formId}`); // Redirect back to detail view
 
