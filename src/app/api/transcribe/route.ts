@@ -4,11 +4,6 @@ import fs from 'fs'; // Required for converting Blob to File-like object for Ope
 import os from 'os';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
-// @ts-ignore - Ignore missing types for platform-specific package
-import ffmpegInstaller from '@ffmpeg-installer/linux-x64';
-
-// Set ffmpeg path
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 // Initialize OpenAI client
 // Ensure OPENAI_API_KEY is set in your .env.local file
