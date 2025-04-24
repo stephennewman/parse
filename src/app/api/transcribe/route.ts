@@ -4,7 +4,8 @@ import fs from 'fs'; // Required for converting Blob to File-like object for Ope
 import os from 'os';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+// @ts-ignore - Ignore missing types for platform-specific package
+import ffmpegInstaller from '@ffmpeg-installer/linux-x64';
 
 // Set ffmpeg path
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
