@@ -412,6 +412,9 @@ export default function CapturePage() {
           submissionPayload.user_id = userId;
       }
 
+      // <<< ADD LOGGING >>>
+      console.log("Payload for submission:", JSON.stringify(submissionPayload, null, 2));
+
       // 3. Insert into form_submissions
       const { data: submissionData, error: insertError } = await supabase
         .from('form_submissions')
