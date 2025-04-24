@@ -144,11 +144,12 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
         - Updated capture page (`renderFieldInput`, `renderFieldHints`) to display a `Slider` component (`shadcn/ui`).
         - Updated parsing API prompt.
 - [x] **Capture Page UI Enhancements:**
-    - Separated Review Fields and Transcription into Tabs using `Tabs` component (`shadcn/ui`) during the `Reviewing` phase.
+    - ~~Separated Review Fields and Transcription into Tabs using `Tabs` component (`shadcn/ui`) during the `Reviewing` phase.~~ (Temporarily removed due to Vercel build issue)
     - Updated the `Prompting` phase instructions to show field hints (options, range, format) alongside labels, similar to the `Recording` phase.
 
 ## Notes / Troubleshooting
 
+*   **[Recent Update - Date] Vercel Build Debugging:** Encountered persistent `File ... is not a module` errors for newly added `shadcn/ui` components (`slider.tsx`, `tabs.tsx`) only during Vercel builds, despite correct local code and dependencies. Tried renaming files, clearing cache, and reinstalling dependencies. Temporarily commented out the Tabs UI in the capture page to achieve a successful deployment.
 *   **[Recent Update - Date] Capture UI Enhancements:** Added Tabs to the review phase to separate fields and transcription. Updated the prompting phase to show field hints (options, ranges) before recording starts.
 *   **[Recent Update - Date] New Field Types:** Implemented Radio Buttons, Multi-Select Checkboxes, and Rating Scale (using `Slider` component).
 *   **[Recent Update - Date] Component Dependencies:** Added `Checkbox`, `RadioGroup`, `Slider`, `Tabs`, `Card` components from `shadcn/ui`.
@@ -180,7 +181,7 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 *   **Capture Page Functionality:**
     *   Implement voice recording using the browser's MediaRecorder API.
     *   Integrate with a transcription service (e.g., Deepgram, AssemblyAI, OpenAI Whisper).
-    *   Display the final transcript (now in a separate tab).
+    *   Display the final transcript.
     *   Develop the UI/UX for associating spoken words/phrases with specific form fields.
     *   Implement the logic to save the structured `form_data` along with the transcript/audio link to the `form_submissions` table.
 *   **Enhanced Form Fields:** Support for more field types (e.g., dropdown, checkbox, date, number) in the template editor and capture page. **(Radio, Multi-Checkbox, Rating added)**
@@ -223,7 +224,7 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
 *   **Capture Page Functionality:**
     *   Implement voice recording using the browser's MediaRecorder API.
     *   Integrate with a transcription service (e.g., Deepgram, AssemblyAI, OpenAI Whisper).
-    *   Display the final transcript (now in a separate tab).
+    *   Display the final transcript.
     *   Develop the UI/UX for associating spoken words/phrases with specific form fields.
     *   Implement the logic to save the structured `form_data` along with the transcript/audio link to the `form_submissions` table.
 *   **Enhanced Form Fields:** Support for more field types (e.g., dropdown, checkbox, date, number) in the template editor and capture page. **(Radio, Multi-Checkbox, Rating added)**
