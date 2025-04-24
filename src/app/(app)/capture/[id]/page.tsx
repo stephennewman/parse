@@ -104,7 +104,6 @@ export default function CapturePage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null); // Renamed from error
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>(RecordingStatus.Idle);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null); // To store the final recording
   const [processingState, setProcessingState] = useState<ProcessingState>(ProcessingState.Idle);
   const [transcription, setTranscription] = useState<string | null>(null);
   const [parsedResults, setParsedResults] = useState<ParsedResults>({});
@@ -200,7 +199,6 @@ export default function CapturePage() {
 
   const startRecording = async () => {
     setRecordingStatus(RecordingStatus.RequestingPermission);
-    setAudioBlob(null);
     audioChunksRef.current = [];
     // --> Reset processing state when starting new recording
     setProcessingState(ProcessingState.Idle);
@@ -230,7 +228,6 @@ export default function CapturePage() {
       // MODIFIED: onstop now triggers the full processing pipeline
       recorder.onstop = () => {
         const completeBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setAudioBlob(completeBlob); // Keep blob reference if needed later
         setRecordingStatus(RecordingStatus.Stopped);
         toast.info("Recording stopped. Processing...");
         
@@ -641,6 +638,43 @@ export default function CapturePage() {
              )}
            </div>
          );
+       case 'rating':
+         const minValue = field.rating_min ?? 1; // Default min 1
+         const maxValue = field.rating_max ?? 5; // Default max 5
+         // Get the current value from parsedResults, defaulting to minValue
+         let currentRating = minValue;
+         const parsedValue = parsedResults[field.internal_key];
+         if (typeof parsedValue === 'number' && parsedValue >= minValue && parsedValue <= maxValue) {
+             currentRating = parsedValue;
+         } else if (typeof parsedValue === 'number') {
+             // If number is outside range, clamp or default? Defaulting to min for now.
+             currentRating = minValue;
+         }
+
+         // Check for invalid configuration
+          if (minValue >= maxValue) {
+            return <p className="text-sm text-red-500 italic">Invalid rating scale configured (Min &gt;= Max).</p>;
+          }
+
+          const displayRating = currentRating;
+
+          return (
+              <div className="flex items-center space-x-4 pt-2">
+                  <Slider
+                      id={field.internal_key}
+                      min={minValue}
+                      max={maxValue}
+                      step={1}
+                      value={[displayRating]} // Slider value needs to be an array
+                      onValueChange={(newValue: number[]) => {
+                          const singleValue = newValue[0];
+                          handleFieldChange(field.internal_key, singleValue);
+                      }}
+                      disabled={currentPhase !== CapturePhase.Reviewing}
+                  />
+                  <span className="font-medium min-w-[30px] text-right">{displayRating}</span>
+              </div>
+          );
        case 'text': // Fallback for 'text' and any other unknown types
       default:
         return (
@@ -675,7 +709,6 @@ export default function CapturePage() {
   const isProcessing = 
       processingState === ProcessingState.Transcribing || 
       processingState === ProcessingState.Parsing;
-  const canRecord = !isRequestingMic && !isProcessing && !isSaving; // Can record if not requesting, processing, or saving
   // Save button appears only on review phase and not currently saving
   const showSaveButton = currentPhase === CapturePhase.Reviewing && !isSaving;
   // General interaction disable flag
@@ -695,7 +728,7 @@ export default function CapturePage() {
       {currentPhase === CapturePhase.Prompting && (
           <div className="space-y-4 p-4 border rounded-md bg-blue-50">
               <h2 className="text-lg font-medium">Instructions</h2>
-              <p>Click "Start Recording" and clearly state the information for the following fields:</p>
+              <p>Click &quot;Start Recording&quot; and clearly state the information for the following fields:</p>
               <ul className="list-disc pl-5 space-y-1">
                   {fields.length > 0 ? (
                       fields.map(field => (
