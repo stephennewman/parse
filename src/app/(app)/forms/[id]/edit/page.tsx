@@ -371,6 +371,7 @@ export default function EditFormPage() {
                       size="icon"
                       onClick={() => handleRemoveField(field.clientId)}
                       aria-label="Remove field"
+                      className="cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -382,7 +383,11 @@ export default function EditFormPage() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleUpdateTemplate} disabled={isUpdating || loading}>
+          <Button 
+            onClick={handleUpdateTemplate} 
+            disabled={isUpdating || loading}
+            className="cursor-pointer"
+          >
             {isUpdating ? "Updating..." : "Update Template"}
           </Button>
         </CardFooter>
