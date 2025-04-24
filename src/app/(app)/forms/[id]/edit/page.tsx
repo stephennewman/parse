@@ -171,6 +171,14 @@ export default function EditFormPage() {
     startTransition(async () => {
         setError(null);
         try {
+            // <<< REMOVE user ID fetch start >>>
+            // const { data: { user }, error: userError } = await supabase.auth.getUser();
+            // if (userError || !user) {
+            //     throw new Error("Could not get user session. Please log in again.");
+            // }
+            // const userId = user.id;
+            // <<< REMOVE user ID fetch end >>>
+
             // --- 1. Update Template Title/Description --- 
             const { error: templateUpdateError } = await supabase
                 .from('form_templates')
@@ -184,7 +192,7 @@ export default function EditFormPage() {
 
             // --- 2. Calculate Field Differences --- 
             const fieldsToAdd: NewFormFieldPayload[] = [];
-            const fieldsToUpdate: (Partial<FormField> & { id: string })[] = []; // Corrected type usage
+            const fieldsToUpdate: (Partial<FormField> & { id: string })[] = []; 
             const fieldIdsToDelete: string[] = [];
 
             // Check for updates and additions
@@ -198,10 +206,11 @@ export default function EditFormPage() {
                 if (currentField.dbId) { // Existing field - prepare for potential update via upsert
                     fieldsToUpdate.push({
                         id: currentField.dbId,
+                        template_id: formId,
                         label: label,
                         internal_key: internalKey,
                         field_type: currentField.fieldType,
-                        display_order: fields.findIndex(f => f.clientId === currentField.clientId) // Set display order based on current position
+                        display_order: fields.findIndex(f => f.clientId === currentField.clientId)
                     });
                 } else { // New field
                      fieldsToAdd.push({
@@ -209,7 +218,7 @@ export default function EditFormPage() {
                          label: label,
                          internal_key: internalKey,
                          field_type: currentField.fieldType,
-                         display_order: fields.findIndex(f => f.clientId === currentField.clientId) // Set display order based on current position
+                         display_order: fields.findIndex(f => f.clientId === currentField.clientId)
                      });
                 }
             }
