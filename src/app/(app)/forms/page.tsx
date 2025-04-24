@@ -16,6 +16,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 import { toast } from "sonner"; // Import toast
 import { Trash2 } from 'lucide-react'; // Import Trash icon
+import { useRouter } from 'next/navigation'; // Import useRouter
 // import type { Database } from '@/lib/database.types'; // If you have types
 
 // Define a type for the form template structure (based on your schema)
@@ -34,6 +35,7 @@ export default function FormsPage() {
   const [selectedFormIds, setSelectedFormIds] = useState<Set<string>>(new Set()); // State for selected IDs
   const [isDeleting, setIsDeleting] = useState(false); // State for deletion process
   const supabase = createClientComponentClient();          // Initialize Supabase client
+  const router = useRouter(); // Initialize router
 
   // Wrap fetchForms in useCallback to stabilize its identity
   const fetchForms = useCallback(async () => {
@@ -187,32 +189,41 @@ export default function FormsPage() {
         forms.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"> {/* Grid layout */}
             {forms.map((form) => (
-              // Use a div wrapper to handle checkbox click propagation
-              <div key={form.id} className="relative">
-                <Card className="hover:shadow-md transition-shadow h-full flex flex-col"> {/* Ensure card takes full height */}
-                  <CardHeader className="flex flex-row items-start space-x-3 pb-2"> {/* Align checkbox and title */}
+              <div 
+                key={form.id} 
+                className="relative cursor-pointer"
+                onClick={() => router.push(`/forms/${form.id}`)}
+              >
+                <Card className="hover:shadow-md transition-shadow h-full flex flex-col">
+                  <CardHeader className="flex flex-row items-start space-x-3 pb-2">
                      <Checkbox
                        id={`select-${form.id}`}
                        checked={selectedFormIds.has(form.id)}
                        onCheckedChange={(checked: boolean | 'indeterminate') => handleCheckboxChange(form.id, checked)}
-                       onClick={(e: React.MouseEvent) => e.stopPropagation()} // Prevent Link navigation
+                       onClick={(e: React.MouseEvent) => e.stopPropagation()}
                        aria-label={`Select form ${form.name}`}
-                       className="mt-1" // Align checkbox slightly better
-                       disabled={isDeleting} // Disable checkbox during delete
+                       className="mt-1"
+                       disabled={isDeleting}
                      />
-                     <div className="flex-1"> {/* Allow title/desc to take remaining space */}
-                       <Link href={`/forms/${form.id}`} className="block" onClick={(e: React.MouseEvent) => { if (isDeleting) e.preventDefault(); }}> {/* Prevent link click during delete */}
-                         <CardTitle className="text-lg hover:underline">{form.name}</CardTitle>
-                       </Link>
+                     <div className="flex-1">
+                       <CardTitle 
+                         className="text-lg hover:underline" 
+                         onClick={(e: React.MouseEvent) => { 
+                             e.stopPropagation(); 
+                             router.push(`/forms/${form.id}`);
+                         }}
+                       >
+                         {form.name}
+                       </CardTitle>
                        {form.description && (
                          <CardDescription className="mt-1">{form.description}</CardDescription>
                        )}
                      </div>
                   </CardHeader>
-                  <CardContent className="pt-0 flex-grow"> {/* Content fills remaining space */}
-                    <Link href={`/forms/${form.id}`} className="block text-xs text-gray-500 hover:underline" onClick={(e: React.MouseEvent) => { if (isDeleting) e.preventDefault(); }}>
+                  <CardContent className="pt-0 flex-grow">
+                    <p className="block text-xs text-gray-500">
                       Created: {new Date(form.created_at).toLocaleDateString()}
-                    </Link>
+                    </p>
                   </CardContent>
                  </Card>
               </div>
