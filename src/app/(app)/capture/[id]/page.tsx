@@ -20,8 +20,8 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'; // <<< Add RadioGroup imports
 import { Label } from '@/components/ui/label'; // <<< Add Label import
 import { Slider } from "@/components/ui/slider"; // <<< Revert import path
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // <<< Revert import path
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"; // <<< Add Card imports
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // <<< Revert import path & COMMENT OUT
+// import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"; // <<< Add Card imports & COMMENT OUT
 
 // TODO: Define types for template/fields if not shared
 interface FormTemplate {
@@ -778,56 +778,38 @@ export default function CapturePage() {
       {/* --- Reviewing Phase --- */} 
       {currentPhase === CapturePhase.Reviewing && (
           <div className="space-y-4 p-4 border rounded-md bg-green-50">
-              <Tabs defaultValue="fields" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="fields">Review Fields</TabsTrigger>
-                      <TabsTrigger value="transcription" disabled={!transcription}>Transcription</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="fields">
-                      <Card>
-                          <CardHeader>
-                              <CardTitle>Review & Edit Fields</CardTitle>
-                              <CardDescription>Please review the extracted information and make any necessary corrections before saving.</CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                              {fields.length > 0 ? (
-                                  fields.map(field => (
-                                      <div key={field.id}>
-                                          <Label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700 mb-1">{field.label}</Label>
-                                          {renderFieldInput(field)}
-                                      </div>
-                                  ))
-                              ) : (
-                                  <p>No fields defined for this form.</p>
-                              )}
-                          </CardContent>
-                      </Card>
-                  </TabsContent>
-                  <TabsContent value="transcription">
-                      <Card>
-                          <CardHeader>
-                              <CardTitle>Final Transcription</CardTitle>
-                              <CardDescription>This is the text generated from your recording.</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                              {transcription ? (
-                                  <Textarea
-                                      id="final-transcription"
-                                      readOnly
-                                      value={transcription}
-                                      rows={10} // Increased rows for better view
-                                      className="w-full bg-white text-sm font-mono" // Use mono font
-                                  />
-                              ) : (
-                                  <p className="text-sm text-gray-500">Transcription not available.</p>
-                              )}
-                          </CardContent>
-                      </Card>
-                  </TabsContent>
-              </Tabs>
-              {processingError && (
-                    <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>
-              )}
+              {/* --- Temporarily reverted Tabs UI due to build issues --- */}
+              <h2 className="text-lg font-medium">Review & Edit</h2>
+              <p>Please review the extracted information and make any necessary corrections before saving.</p>
+               {/* Optional: Display Final Transcription */} 
+               {transcription && (
+                   <div className="mt-2">
+                       <Label htmlFor="final-transcription" className="block text-sm font-medium text-gray-700 mb-1">Final Transcription:</Label>
+                       <Textarea
+                           id="final-transcription"
+                           readOnly
+                           value={transcription}
+                           rows={3}
+                           className="w-full bg-white text-sm"
+                       />
+                   </div>
+               )}
+               {/* Interactive Form Fields */} 
+               <div className="space-y-4 pt-4 border-t mt-4">
+                   {fields.length > 0 ? (
+                       fields.map(field => (
+                           <div key={field.id}>
+                               <Label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700 mb-1">{field.label}</Label>
+                               {renderFieldInput(field)}
+                           </div>
+                       ))
+                   ) : (
+                       <p>No fields defined for this form.</p>
+                   )}
+               </div>
+               {processingError && (
+                     <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>
+               )}
           </div>
       )}
 
