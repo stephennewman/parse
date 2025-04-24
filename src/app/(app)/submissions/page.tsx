@@ -20,15 +20,6 @@ interface Submission {
   // We won't display raw form_data here for brevity
 }
 
-// Intermediate type matching Supabase's inferred return type
-interface FetchedSubmission {
-  id: string;
-  created_at: string;
-  template_id: string;
-  user_id: string | null;
-  form_templates: { name: string }[] | null; // Matches Supabase return type
-}
-
 export default function AllSubmissionsPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,24 +54,14 @@ export default function AllSubmissionsPage() {
 
         if (fetchError) throw fetchError;
 
-        // Map the fetched data (which might have form_templates as array) to our desired Submission type
-        const formattedSubmissions: Submission[] = (data || []).map((sub: FetchedSubmission) => ({
-          ...sub,
-          // Take the first template object if the array exists and has items, otherwise null
-          form_templates: (sub.form_templates && sub.form_templates.length > 0) 
-                          ? sub.form_templates[0] 
-                          : null,
-        }));
+        console.log("Raw submissions data from Supabase:", data);
 
-        setSubmissions(formattedSubmissions);
+        // Directly set state, casting to the correct Submission type via unknown
+        setSubmissions((data as unknown as Submission[]) || []);
       } catch (err) {
         console.error("Error fetching submissions:", err);
-        let message = "Failed to load submissions.";
-        if (err instanceof Error) {
-          message = err.message;
-        }
-        setError(message);
-        toast.error(message);
+        setError("Failed to load submissions. Please try again later.");
+        toast.error("Failed to load submissions. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -91,7 +72,7 @@ export default function AllSubmissionsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">All Submissions</h1>
+      <h1 className="text-sm font-semibold mb-4">Submissions</h1>
 
       {loading && (
         <div className="flex justify-center items-center py-10">

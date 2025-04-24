@@ -91,10 +91,8 @@ export default function SubmissionDetailPage() {
     }, [submissionId, supabase]);
 
     const breadcrumbLinks = [
-        { label: "Forms", href: "/forms" },
-        { label: template?.name || "Form Submissions", href: `/forms/${template?.id}` }, // Link back to form detail?
-        // { label: "Submissions", href: `/forms/${template?.id}/submissions` }, // Or a dedicated submissions list?
-        { label: "Submission Details", isCurrent: true },
+        { label: "Submissions", href: "/submissions" },
+        { label: "Details", isCurrent: true },
     ];
 
     if (loading) return <div>Loading submission details...</div>;

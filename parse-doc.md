@@ -115,9 +115,21 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
     - Modified `handleSaveSubmission` to retrieve the new submission ID.
     - Redirected user to the `/submissions/[id]` page upon successful save.
 
-## Phase 4 Progress (Feature Enhancements - [Current Date])
+## Phase 4 Progress (Feature Enhancements - [Current Date: 2024-08-27])
 
-- [x] **Delete Form Template:** 
+- [x] **Dashboard Implementation (`/`):**
+    - Created a new dashboard page at the root (`/`) after resolving path conflicts.
+    - Displays key stats (Total Forms, Total Submissions) using `Card` components.
+    - Shows a table of the 5 most recent submissions with links to details.
+    - Includes a "Quick Actions" card with buttons to create forms and view submissions.
+    - Fetches data specifically for the logged-in user.
+- [x] **UI/UX Refinements:**
+    - Standardized page headings ("Dashboard", "Forms", "Submissions") for consistent size and placement (`text-sm font-semibold mb-4`).
+    - Updated sidebar navigation: renamed "Home" to "Dashboard", replaced text title "Parse" with logo image, updated navigation icons (`Gauge` for Dashboard).
+    - Ensured "Add Field" and "Save Template" buttons show a pointer cursor on hover.
+    - Simplified "Create New Form" page by removing placeholder text when no fields exist.
+    - Added breadcrumbs to Submission Detail page (`Submissions > Details`).
+- [x] **Delete Form Template:**
     - Added a "Delete" button to the form detail page (`/forms/[id]`).
     - Implemented `handleDeleteTemplate` function to delete the template and its associated fields from Supabase after confirmation.
     - Added user feedback (toasts) and redirects upon success/failure.
@@ -144,14 +156,19 @@ This document serves as a running log for the voice-to-form SaaS project. It pro
         - Updated capture page (`renderFieldInput`, `renderFieldHints`) to display a `Slider` component (`shadcn/ui`).
         - Updated parsing API prompt.
 - [x] **Capture Page UI Enhancements:**
-    - ~~Separated Review Fields and Transcription into Tabs using `Tabs` component (`shadcn/ui`) during the `Reviewing` phase.~~ (Temporarily removed due to Vercel build issue)
+    - ~~Separated Review Fields and Transcription into Tabs using `Tabs` component (`shadcn/ui`) during the `Reviewing` phase.~~ (Temporarily removed due to Vercel build issue - see Notes)
     - Updated the `Prompting` phase instructions to show field hints (options, range, format) alongside labels, similar to the `Recording` phase.
 
 ## Notes / Troubleshooting
 
-*   **[Recent Update - Date] Vercel Build Debugging:** Encountered persistent `File ... is not a module` errors for newly added `shadcn/ui` components (`slider.tsx`, `tabs.tsx`) only during Vercel builds, despite correct local code and dependencies. Tried renaming files, clearing cache, and reinstalling dependencies. Temporarily commented out the Tabs UI in the capture page to achieve a successful deployment.
-*   **[Recent Update - Date] Capture UI Enhancements:** Added Tabs to the review phase to separate fields and transcription. Updated the prompting phase to show field hints (options, ranges) before recording starts.
-*   **[Recent Update - Date] New Field Types:** Implemented Radio Buttons, Multi-Select Checkboxes, and Rating Scale (using `Slider` component).
+*   **[2024-08-27] Dashboard & UI Updates:**
+    - Created the main Dashboard page (`src/app/(app)/page.tsx`) displaying stats, recent submissions, and quick actions. Resolved conflict with pre-existing `src/app/page.tsx` by deleting the latter.
+    - Attempted to add a `recharts` line chart for submission trends. Encountered persistent `Module not found: recharts` errors despite install attempts and troubleshooting `shadcn/ui add charts`. Removed the chart feature for now.
+    - Updated sidebar appearance (logo, Dashboard link/icon) and standardized page heading styles.
+    - Made minor UX tweaks (button cursors, removing redundant text on new form page).
+*   **[2024-08-27] Vercel Build Debugging:** Encountered persistent `File ... is not a module` errors for newly added `shadcn/ui` components (`slider.tsx`, `tabs.tsx`) only during Vercel builds, despite correct local code and dependencies. Tried renaming files, clearing cache, and reinstalling dependencies. Temporarily commented out the Tabs UI in the capture page to achieve a successful deployment.
+*   **[Date] Capture UI Enhancements:** Added Tabs to the review phase to separate fields and transcription. Updated the prompting phase to show field hints (options, ranges) before recording starts.
+*   **[Date] New Field Types:** Implemented Radio Buttons, Multi-Select Checkboxes, and Rating Scale (using `Slider` component).
 *   **[Recent Update - Date] Component Dependencies:** Added `Checkbox`, `RadioGroup`, `Slider`, `Tabs`, `Card` components from `shadcn/ui`.
 *   **[Recent Update - Date] Backend:** Updated `/api/parse` prompt logic to handle new field types and provide appropriate instructions to the AI.
 *   **[Recent Update - Date] Database:** Required adding `rating_min` and `rating_max` (nullable integer) columns to the `form_fields` table.

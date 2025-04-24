@@ -21,6 +21,7 @@ import React from "react";
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { toast } from "sonner";
+import { PlusCircle } from 'lucide-react';
 
 interface FormFieldState {
   id: string;
@@ -289,9 +290,7 @@ export default function NewFormPage() {
             <h3 className="text-lg font-medium">Form Fields</h3>
             <div className="space-y-4">
               {fields.length === 0 ? (
-                <div className="border border-dashed border-gray-300 rounded-md min-h-[100px] flex items-center justify-center text-sm text-gray-500">
-                  Add fields using the button below.
-                </div>
+                null
               ) : (
                 fields.map((field) => (
                   <React.Fragment key={field.id}>
@@ -375,11 +374,12 @@ export default function NewFormPage() {
               )}
             </div>
             <Button
-              variant="outline"
-              size="sm"
+              type="button"
               onClick={handleAddField}
+              variant="outline"
+              className="cursor-pointer"
             >
-              Add Field
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Field
             </Button>
           </div>
         </CardContent>
@@ -390,6 +390,7 @@ export default function NewFormPage() {
           <Button
             onClick={handleSaveTemplate}
             disabled={isPending}
+            className="cursor-pointer"
           >
             {isPending ? "Saving..." : "Save Template"}
           </Button>

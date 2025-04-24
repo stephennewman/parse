@@ -1,13 +1,37 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { Gauge, LayoutGrid, ListChecks, LogOut } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
+
+interface NavItemProps {
+  href: string;
+  children: React.ReactNode;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ href, children }) => {
+  const pathname = usePathname();
+  const isActive = pathname === href || (href !== '/' && pathname.startsWith(href));
+
+  return (
+    <Link href={href} className={cn(
+        "flex items-center px-3 py-2 rounded-md text-sm font-medium gap-2",
+        isActive
+          ? "bg-gray-200 text-gray-900"
+          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+      )}>
+      {children}
+    </Link>
+  );
+};
 
 export default function AppLayout({ children }: AppLayoutProps) {
   // Define heights and widths for layout calculations (adjust as needed)
@@ -30,7 +54,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div className="flex flex-col h-full p-4 pt-6"> {/* Added some top padding back for content */}
           {/* App Title Area */}
           <div className="mb-6 px-3"> {/* Added title here with bottom margin */}
-            <div className="font-semibold text-lg text-gray-800">Parse</div>
+            <img
+              src="https://s3.ca-central-1.amazonaws.com/logojoy/logos/218980835/no_padding.png?93861.20000000298"
+              alt="Parse Logo"
+              className="h-16 w-auto" // Set height to h-16, width auto maintains aspect ratio
+            />
           </div>
           
           {/* Navigation Area - occupies most space */}
@@ -38,15 +66,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <nav>
               <ul>
                 <li>
-                  <Link href="/" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium cursor-pointer">
-                    {/* Add an icon later if desired */}
-                    Home
-                  </Link>
+                  <NavItem href="/">
+                    <Gauge className="h-5 w-5" />
+                    Dashboard
+                  </NavItem>
                 </li>
                 <li>
-                  <Link href="/forms" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium cursor-pointer">
+                  <NavItem href="/forms">
+                    <LayoutGrid className="h-5 w-5" />
                     Forms
-                  </Link>
+                  </NavItem>
+                </li>
+                <li>
+                  <NavItem href="/submissions">
+                    <ListChecks className="h-5 w-5" />
+                    Submissions
+                  </NavItem>
                 </li>
                 {/* Add more navigation links here */}
               </ul>
