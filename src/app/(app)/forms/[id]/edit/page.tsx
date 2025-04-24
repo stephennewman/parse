@@ -379,7 +379,13 @@ export default function EditFormPage() {
                 ))
               )}
             </div>
-            <Button variant="outline" onClick={handleAddField}>Add Field</Button>
+            <Button 
+              variant="outline" 
+              onClick={handleAddField}
+              className="cursor-pointer"
+            >
+              Add Field
+            </Button>
           </div>
         </CardContent>
         <CardFooter className="flex justify-end">
