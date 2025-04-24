@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Gauge, LayoutGrid, ListChecks, LogOut } from 'lucide-react';
+import { Gauge, LayoutGrid, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 interface AppLayoutProps {
   children: React.ReactNode;

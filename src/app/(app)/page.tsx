@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
-import { format, subDays, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { format } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, FilePlus, ListChecks, AlertCircle, LayoutGrid } from 'lucide-react';
+import { Loader2, FilePlus, ListChecks, AlertCircle, LayoutGrid } from 'lucide-react';
 
 // Types (consider moving to a shared file)
 interface RecentSubmission {
