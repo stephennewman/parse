@@ -389,33 +389,34 @@ export default function CapturePage() {
     setIsSaving(true);
 
     try {
-      // 1. Get User ID
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-      if (!session?.user) {
-        toast.error("You must be logged in to save a submission.");
-        // Optionally redirect to login
-        // router.push('/login');
-        throw new Error("User not authenticated.");
+      // 1. Get User ID (Optional)
+      let userId: string | null = null; // <<< Initialize userId as null
+      const { data: { session } /* removed sessionError check */ } = await supabase.auth.getSession();
+      if (session?.user) { // <<< Check if session and user exist
+        userId = session.user.id; // <<< Set userId only if logged in
       }
-      const userId = session.user.id;
+      // No error thrown if not logged in
 
-      // 2. Insert into form_submissions and select the new ID
+      // 2. Prepare payload (conditionally include user_id)
+      const submissionPayload: any = {
+          template_id: id,
+          form_data: parsedResults,
+      };
+      if (userId) { // <<< Only add user_id if it's not null
+          submissionPayload.user_id = userId;
+      }
+
+      // 3. Insert into form_submissions and select the new ID
       const { data: submissionData, error: insertError } = await supabase
         .from('form_submissions')
-        .insert([
-          {
-            user_id: userId,
-            template_id: id,
-            form_data: parsedResults,
-          },
-        ])
-        .select('id') // Select the ID of the inserted row
-        .single(); // Expecting a single row back
+        .insert([submissionPayload]) // <<< Use the prepared payload
+        .select('id') 
+        .single(); 
 
       if (insertError) {
         console.error("Supabase insert error:", insertError);
-        throw new Error(`Failed to save submission: ${insertError.message}`);
+        // Provide a more user-friendly generic error potentially
+        throw new Error(`Failed to save submission.`); // Simplified error message
       }
 
       if (!submissionData || !submissionData.id) {
@@ -425,19 +426,20 @@ export default function CapturePage() {
 
       const newSubmissionId = submissionData.id;
 
-      // 3. Handle Success & Redirect
+      // 4. Handle Success & Redirect
       toast.success("Submission saved successfully! Redirecting...");
-      router.push(`/submissions/${newSubmissionId}`); // Redirect to the new submission detail page
+      router.push(`/submissions/${newSubmissionId}`); 
 
     } catch (err) {
       console.error("Save submission failed:", err);
       let message = "Could not save submission.";
       if (err instanceof Error) {
-        message = err.message;
+        // Avoid exposing raw DB errors directly if possible
+        message = err.message.startsWith('Failed to save submission') ? err.message : "Could not save submission.";
       }
       toast.error(message);
     } finally {
-      setIsSaving(false); // Still set saving to false on error/finally
+      setIsSaving(false); 
     }
   };
 
