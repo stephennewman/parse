@@ -4,6 +4,7 @@ import fs from 'fs'; // Required for converting Blob to File-like object for Ope
 import os from 'os';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Ignore potential missing types for installer package
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 
