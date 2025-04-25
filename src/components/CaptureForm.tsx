@@ -95,6 +95,7 @@ const PREFERRED_MIME_TYPES = [
     // Less common, add if necessary: 'audio/wav', 'audio/mpeg' (mp3)
 ];
 */ // <--- End comment for experiment
+// <<< Removed PREFERRED_MIME_TYPES constant and probing logic for permanent force webm >>>
 
 // --- Component Props ---
 interface CaptureFormProps {
@@ -196,7 +197,8 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
 
   const startRecording = async () => {
     // <<< EXPERIMENT: Force audio/webm - Temporarily disable probing >>>
-    console.log("Starting recording attempt. FORCING audio/webm (Experiment).");
+    // <<< Permanent: Force audio/webm >>>
+    console.log("Starting recording attempt. Forcing audio/webm.");
     const selectedMimeType = 'audio/webm'; // Hardcode webm
     setRecordingMimeType(selectedMimeType);
     // --- Below is the original probing logic, now commented out ---
@@ -224,6 +226,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
     setRecordingMimeType(selectedMimeType); // Set state with the determined MIME type
     */
     // <<< End EXPERIMENT section >>>
+    // <<< End removed section >>>
 
     setRecordingStatus(RecordingStatus.RequestingPermission);
     audioChunksRef.current = [];
