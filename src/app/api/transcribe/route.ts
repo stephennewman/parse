@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     let errorMessage = 'Failed to transcribe audio.';
 
     // Handle specific OpenAI error structure if available (Revised to avoid 'no-explicit-any')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const potentialOpenAIError = error as any; // Cast once for property checks
     if (
         typeof potentialOpenAIError === 'object' &&
