@@ -28,12 +28,33 @@ export async function POST(request: NextRequest) {
 
     // Helper function to get extension
     function getExtensionFromMimeType(mimeType: string): string {
-        if (mimeType.startsWith('audio/mp4')) return 'mp4';
+        console.log(`Determining extension for mimeType: ${mimeType}`);
+        // Prioritize common types supported by OpenAI Whisper
+        if (mimeType.startsWith('audio/mp4')) return 'mp4'; // Often m4a on Apple devices, but mp4 container is valid
+        if (mimeType.startsWith('audio/mpeg')) return 'mp3';
+        if (mimeType.startsWith('audio/mp3')) return 'mp3';
         if (mimeType.startsWith('audio/ogg')) return 'ogg';
         if (mimeType.startsWith('audio/webm')) return 'webm';
-        // Add more specific types if needed
-        console.warn(`Unknown mimeType received: ${mimeType}, using .bin extension`);
-        return 'bin'; // Default binary extension
+        if (mimeType.startsWith('audio/wav') || mimeType.startsWith('audio/wave') || mimeType.startsWith('audio/x-wav')) return 'wav';
+        if (mimeType.startsWith('audio/flac')) return 'flac';
+        if (mimeType.startsWith('audio/aac')) return 'm4a'; // AAC often in M4A container
+        if (mimeType.startsWith('audio/x-m4a')) return 'm4a';
+
+        // Less common but potentially supported
+        if (mimeType.startsWith('audio/mpga')) return 'mpga'; // MPEG audio
+        if (mimeType.startsWith('audio/oga')) return 'oga'; // Ogg audio
+
+        console.warn(`Unsupported or unrecognized mimeType received: ${mimeType}. Attempting fallback extension extraction.`);
+        
+        // Basic fallback based on subtype after '/'
+        const subtype = mimeType.split('/')[1]?.split(';')[0]; // Get part after '/' and before any parameters like ';codecs='
+        if (subtype && ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm'].includes(subtype)) {
+             console.log(`Using fallback extension based on subtype: .${subtype}`);
+             return subtype;
+        }
+
+        console.error(`Could not determine a valid extension for mimeType: ${mimeType}. Defaulting to .bin - OpenAI likely will reject this.`);
+        return 'bin'; // Last resort default - likely to fail
     }
 
     // Save blob to a temporary file
@@ -42,7 +63,7 @@ export async function POST(request: NextRequest) {
     const filename = `audio-${Date.now()}.${fileExtension}`;
     tempFilePath = path.join(os.tmpdir(), filename);
     await fs.promises.writeFile(tempFilePath, buffer);
-    console.log(`Saved temporary audio to: ${tempFilePath}`);
+    console.log(`Saved temporary audio to: ${tempFilePath} (MIME Type: ${mimeType})`); // Log MIME type too
 
     // Call OpenAI Whisper API with the file stream
     console.log(`Sending temporary file to OpenAI: ${tempFilePath}`);
