@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import fs from 'fs'; // Required for converting Blob to File-like object for OpenAI
+import fs from 'fs'; // Required for creating ReadStream 
 import os from 'os';
 import path from 'path';
-import ffmpeg from 'fluent-ffmpeg';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - Ignore potential missing types for installer package
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-
-// Set ffmpeg path
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 // Initialize OpenAI client
-// Ensure OPENAI_API_KEY is set in your .env.local file
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(request: NextRequest) {
-  // Define temporary file paths outside the try block for cleanup
-  let tempInputPath: string | null = null;
-  let tempOutputPath: string | null = null;
+  let tempFilePath: string | null = null; // Path for temporary file
 
   try {
     const formData = await request.formData();
@@ -35,39 +25,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
-    // --- Save Original Blob --- 
+    // Save blob to a temporary file
     const buffer = Buffer.from(await audioBlob.arrayBuffer());
-    const inputFilename = `input-${Date.now()}.webm`; // Keep original extension for reference
-    tempInputPath = path.join(os.tmpdir(), inputFilename);
-    await fs.promises.writeFile(tempInputPath, buffer);
-    console.log(`Saved original audio to: ${tempInputPath}`);
+    const filename = `audio-${Date.now()}.webm`; // Keep original extension hint
+    tempFilePath = path.join(os.tmpdir(), filename);
+    await fs.promises.writeFile(tempFilePath, buffer);
+    console.log(`Saved temporary audio to: ${tempFilePath}`);
 
-    // --- Convert using ffmpeg --- 
-    const outputFilename = `output-${Date.now()}.mp3`; // Convert to mp3
-    tempOutputPath = path.join(os.tmpdir(), outputFilename);
-    console.log(`Attempting conversion to: ${tempOutputPath}`);
-
-    await new Promise<void>((resolve, reject) => {
-        ffmpeg(tempInputPath!)
-            .toFormat('mp3')
-            // .audioCodec('libmp3lame') // Usually not needed, ffmpeg defaults are good
-            // .audioBitrate('192k') // Optional: Set bitrate
-            .on('end', () => {
-                console.log('ffmpeg conversion finished.');
-                resolve();
-            })
-            .on('error', (err: Error) => {
-                console.error('ffmpeg conversion error:', err);
-                reject(new Error(`Failed to convert audio: ${err.message}`));
-            })
-            .save(tempOutputPath!);
-    });
-
-    // --- Transcribe Converted File --- 
-    console.log(`Sending converted file to OpenAI: ${tempOutputPath}`);
+    // Call OpenAI Whisper API with the file stream
+    console.log(`Sending temporary file to OpenAI: ${tempFilePath}`);
     const response = await openai.audio.transcriptions.create({
         model: 'whisper-1',
-        file: fs.createReadStream(tempOutputPath!),
+        file: fs.createReadStream(tempFilePath),
     });
     const transcription = response.text;
     console.log("Transcription successful.");
@@ -80,22 +49,24 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
         errorMessage = error.message;
     }
-    // Consider more specific error handling based on OpenAI errors if needed
+    // Handle specific OpenAI error structure if available
+    if (typeof error === 'object' && error !== null && 'status' in error && 'error' in error) {
+        const openAIError = error.error as any;
+        if (openAIError && typeof openAIError === 'object' && 'message' in openAIError) {
+             errorMessage = `OpenAI Error (${error.status}): ${openAIError.message}`;
+        }
+    }
     return NextResponse.json({ error: errorMessage }, { status: 500 });
 
   } finally {
-    // --- Clean up temporary files --- 
-    try {
-      if (tempInputPath) {
-        await fs.promises.unlink(tempInputPath);
-        console.log(`Deleted temporary input file: ${tempInputPath}`);
-      }
-      if (tempOutputPath) {
-        await fs.promises.unlink(tempOutputPath);
-        console.log(`Deleted temporary output file: ${tempOutputPath}`);
-      }
-    } catch (cleanupError) {
-        console.error("Error cleaning up temporary files:", cleanupError);
+    // Clean up the temporary file
+    if (tempFilePath) {
+        try {
+            await fs.promises.unlink(tempFilePath);
+            console.log(`Deleted temporary file: ${tempFilePath}`);
+        } catch (cleanupError) {
+            console.error(`Error cleaning up temporary file ${tempFilePath}:`, cleanupError);
+        }
     }
   }
 } 
