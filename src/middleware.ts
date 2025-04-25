@@ -57,18 +57,12 @@ export async function middleware(req: NextRequest) {
 // Ensure the middleware is only called for relevant paths.
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-    // Add specific paths if needed, though the above pattern is usually sufficient
-    // '/forms/:path*',
-    // '/login',
-    // '/signup',
-    // '/',
+    /* Match only paths that require session checking or redirection logic */
+    '/',             // Check root path for redirection if not logged in
+    '/forms/:path*', // Protect the authenticated /forms section
+    '/login',        // Run on login to redirect if already logged in
+    '/signup',       // Run on signup to redirect if already logged in (if you have signup)
+    // Add any other specific authenticated paths here
+    // DO NOT include '/form/:path*'
   ],
 }; 
