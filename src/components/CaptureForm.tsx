@@ -196,101 +196,130 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   // --- Handlers & Logic (Copied from original page) ---
 
   const startRecording = async () => {
-    // <<< EXPERIMENT: Force audio/webm - Temporarily disable probing >>>
     // <<< Permanent: Force audio/webm >>>
     console.log("Starting recording attempt. Forcing audio/webm.");
     const selectedMimeType = 'audio/webm'; // Hardcode webm
-    setRecordingMimeType(selectedMimeType);
-    // --- Below is the original probing logic, now commented out ---
-    /*
-    console.log("Starting recording attempt. Probing MIME types...");
-    let selectedMimeType: string | null = null;
-    for (const mimeType of PREFERRED_MIME_TYPES) {
-        const isSupported = MediaRecorder.isTypeSupported(mimeType);
-        console.log(`- Checking ${mimeType}: ${isSupported ? 'SUPPORTED' : 'NOT SUPPORTED'}`);
-        if (isSupported && !selectedMimeType) { // Pick the first supported type from the preferred list
-            console.log(`>>> Selecting first supported mimeType: ${mimeType}`);
-            selectedMimeType = mimeType;
-            // We break here to ensure we use the highest preference supported one
-             break; 
-        }
-    }
+    // <<< Remove direct setting of state here, will be set after checks >>>
+    // setRecordingMimeType(selectedMimeType);
 
-    if (!selectedMimeType) {
-        selectedMimeType = 'audio/webm'; // Fallback if none of the preferred types are supported
-        console.warn(`No preferred mimeType supported by MediaRecorder. Falling back to default: ${selectedMimeType}`);
-    } else {
-         console.log(`Final selected mimeType for MediaRecorder: ${selectedMimeType}`);
-    }
-
-    setRecordingMimeType(selectedMimeType); // Set state with the determined MIME type
-    */
-    // <<< End EXPERIMENT section >>>
+    // <<< Remove commented out probing logic >>>
     // <<< End removed section >>>
 
-    setRecordingStatus(RecordingStatus.RequestingPermission);
-    audioChunksRef.current = [];
+    // --- Clear previous state ---
+    setRecordingStatus(RecordingStatus.Idle); // Reset status before checking permission
     setProcessingState(ProcessingState.Idle);
     setTranscription(null);
     setParsedResults({});
     setProcessingError(null);
-    setCurrentPhase(CapturePhase.Recording);
+    // DO NOT set currentPhase here yet
+    audioChunksRef.current = [];
 
     try {
+      // --- Check for MediaDevices API support ---
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Media Devices API not supported in this browser.');
+        toast.error('Media Devices API not supported in this browser.');
+        setRecordingStatus(RecordingStatus.Error);
+        setCurrentPhase(CapturePhase.Error);
+        setProcessingError('Browser does not support audio recording.');
+        return;
       }
+
+      // --- Check Permission Status ---
+      let permissionStatus: PermissionState = 'prompt';
+      try {
+          const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          permissionStatus = result.state;
+          console.log(`Microphone permission status: ${permissionStatus}`);
+      } catch (err) {
+          console.warn("Permissions API query failed (might be unsupported or error), proceeding to getUserMedia:", err);
+      }
+
+      if (permissionStatus === 'denied') {
+          toast.error("Microphone permission denied. Please enable it in your browser settings.");
+          setRecordingStatus(RecordingStatus.PermissionDenied);
+          setCurrentPhase(CapturePhase.Prompting); // Stay in prompting phase, show message
+          return;
+      }
+
+      // --- Request Permission / Get Stream (if needed or already granted) ---
+      setRecordingStatus(RecordingStatus.RequestingPermission); // Indicate we are asking or about to use mic
+      setCurrentPhase(CapturePhase.Recording); // Optimistically set phase - Recorder errors will revert it
+
+      console.log("Calling getUserMedia...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("getUserMedia successful, stream obtained.");
       audioStreamRef.current = stream;
+
+      // --- Set MimeType state and Recording Status *after* getting stream ---
+      setRecordingMimeType(selectedMimeType);
       setRecordingStatus(RecordingStatus.Recording);
       toast.success("Microphone access granted. Recording started.");
 
-      // <<< Initialize MediaRecorder with selected (forced) type >>>
+      // --- Initialize MediaRecorder with selected (forced) type ---
+      console.log(`Initializing MediaRecorder with mimeType: ${selectedMimeType}...`);
       const options = { mimeType: selectedMimeType }; // selectedMimeType is now always 'audio/webm'
       const recorder = new MediaRecorder(stream, options);
+      console.log("MediaRecorder initialized.");
       mediaRecorderRef.current = recorder;
 
+      // --- Add Logging to Event Handlers ---
       recorder.ondataavailable = (event) => {
+        console.log(`recorder.ondataavailable fired. Data size: ${event.data.size}`);
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       recorder.onstop = () => {
+        console.log("recorder.onstop fired.");
         // <<< Create Blob with the correct (forced) type >>>
         const completeBlob = new Blob(audioChunksRef.current, { type: recordingMimeType }); // recordingMimeType state is now always 'audio/webm'
-        setRecordingStatus(RecordingStatus.Stopped);
-        toast.info("Recording stopped. Processing...");
+        console.log(`Blob created. Type: ${completeBlob.type}, Size: ${completeBlob.size}`);
+
+        setRecordingStatus(RecordingStatus.Stopped); // Update status *before* processing
+
         if (audioStreamRef.current) {
+            console.log("Stopping audio stream tracks.");
             audioStreamRef.current.getTracks().forEach(track => track.stop());
             audioStreamRef.current = null;
+        } else {
+            console.warn("audioStreamRef was null during recorder.onstop");
         }
+
+        if (completeBlob.size === 0) {
+            console.error("Blob size is 0. Cannot process recording.");
+            toast.error("Recording failed: No audio data captured.");
+            setRecordingStatus(RecordingStatus.Error);
+            setCurrentPhase(CapturePhase.Error);
+            setProcessingError("No audio data was captured during recording.");
+            return;
+        }
+
+        toast.info("Recording stopped. Processing..."); // Move toast after checks
         handleProcessRecording(completeBlob);
       };
 
       recorder.onerror = (event) => {
-        console.error("MediaRecorder error:", event);
+        console.error("MediaRecorder recorder.onerror event:", event);
         toast.error("An error occurred during recording.");
         setRecordingStatus(RecordingStatus.Error);
         setProcessingState(ProcessingState.Idle);
-        stopRecording();
+        // Ensure stream is stopped on error too
+        if (audioStreamRef.current) {
+          audioStreamRef.current.getTracks().forEach(track => track.stop());
+          audioStreamRef.current = null;
+        }
+        mediaRecorderRef.current = null;
         setCurrentPhase(CapturePhase.Error);
       }
 
+      // --- Start the recorder ---
+      console.log("Calling recorder.start()...");
       recorder.start();
+      console.log("recorder.start() called.");
 
     } catch (err) {
-      console.error("Error accessing microphone:", err);
+      console.error("Error in startRecording try block:", err);
       let message = "Could not start recording.";
-      if (err instanceof Error) {
-          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-              message = "Microphone permission denied. Please enable it in your browser settings.";
-              setRecordingStatus(RecordingStatus.PermissionDenied);
-          } else {
-              message = `Error: ${err.message}`;
-              setRecordingStatus(RecordingStatus.Error);
-          }
-      } else {
-          setRecordingStatus(RecordingStatus.Error);
-      }
+      if (err instanceof Error) message = err.message;
       toast.error(message);
       if (audioStreamRef.current) {
         audioStreamRef.current.getTracks().forEach(track => track.stop());
