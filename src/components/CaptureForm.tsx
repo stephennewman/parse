@@ -193,7 +193,12 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   // --- Handlers & Logic (Copied from original page) ---
 
   const startRecording = async () => {
-    // <<< Add MimeType Probing Logic with Detailed Logging >>>
+    // <<< EXPERIMENT: Force audio/webm - Temporarily disable probing >>>
+    console.log("Starting recording attempt. FORCING audio/webm (Experiment).");
+    const selectedMimeType = 'audio/webm'; // Hardcode webm
+    setRecordingMimeType(selectedMimeType);
+    // --- Below is the original probing logic, now commented out ---
+    /*
     console.log("Starting recording attempt. Probing MIME types...");
     let selectedMimeType: string | null = null;
     for (const mimeType of PREFERRED_MIME_TYPES) {
@@ -215,7 +220,8 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
     }
 
     setRecordingMimeType(selectedMimeType); // Set state with the determined MIME type
-    // <<< End Probing Logic >>>
+    */
+    // <<< End EXPERIMENT section >>>
 
     setRecordingStatus(RecordingStatus.RequestingPermission);
     audioChunksRef.current = [];
@@ -234,8 +240,8 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
       setRecordingStatus(RecordingStatus.Recording);
       toast.success("Microphone access granted. Recording started.");
 
-      // <<< Initialize MediaRecorder with selected type >>>
-      const options = { mimeType: selectedMimeType }; 
+      // <<< Initialize MediaRecorder with selected (forced) type >>>
+      const options = { mimeType: selectedMimeType }; // selectedMimeType is now always 'audio/webm'
       const recorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = recorder;
 
@@ -244,8 +250,8 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
       };
 
       recorder.onstop = () => {
-        // <<< Create Blob with correct type >>>
-        const completeBlob = new Blob(audioChunksRef.current, { type: recordingMimeType });
+        // <<< Create Blob with the correct (forced) type >>>
+        const completeBlob = new Blob(audioChunksRef.current, { type: recordingMimeType }); // recordingMimeType state is now always 'audio/webm'
         setRecordingStatus(RecordingStatus.Stopped);
         toast.info("Recording stopped. Processing...");
         if (audioStreamRef.current) {
