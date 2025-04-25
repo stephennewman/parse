@@ -46,16 +46,23 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing transcription:', error);
     let errorMessage = 'Failed to transcribe audio.';
-    if (error instanceof Error) {
-        errorMessage = error.message;
+
+    // Handle specific OpenAI error structure if available (Revised to avoid 'no-explicit-any')
+    const potentialOpenAIError = error as any; // Cast once for property checks
+    if (
+        typeof potentialOpenAIError === 'object' &&
+        potentialOpenAIError !== null &&
+        typeof potentialOpenAIError.status === 'number' &&
+        typeof potentialOpenAIError.error === 'object' &&
+        potentialOpenAIError.error !== null &&
+        typeof potentialOpenAIError.error.message === 'string'
+       )
+    {
+        errorMessage = `OpenAI Error (${potentialOpenAIError.status}): ${potentialOpenAIError.error.message}`;
+    } else if (error instanceof Error) { // Fallback to standard Error
+         errorMessage = error.message;
     }
-    // Handle specific OpenAI error structure if available
-    if (typeof error === 'object' && error !== null && 'status' in error && 'error' in error) {
-        const openAIError = error.error as any;
-        if (openAIError && typeof openAIError === 'object' && 'message' in openAIError) {
-             errorMessage = `OpenAI Error (${error.status}): ${openAIError.message}`;
-        }
-    }
+
     return NextResponse.json({ error: errorMessage }, { status: 500 });
 
   } finally {
