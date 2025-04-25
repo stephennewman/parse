@@ -83,6 +83,14 @@ const loadingMessages = [
     "Processing your thoughts...", "Consulting the digital oracle...",
 ];
 
+// <<< Define preferred MIME types >>>
+const PREFERRED_MIME_TYPES = [
+    'audio/mp4', // Often supported on iOS/Safari (AAC codec)
+    'audio/webm;codecs=opus', // Generally good quality and widely supported
+    'audio/ogg;codecs=opus', // Alternative container for Opus
+    'audio/webm', // Default fallback
+];
+
 // --- Component Props ---
 interface CaptureFormProps {
     formId: string;
@@ -108,6 +116,8 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(loadingMessages[0]);
   const [currentPhase, setCurrentPhase] = useState<CapturePhase>(CapturePhase.Prompting);
+  // <<< Add state for MIME type >>>
+  const [recordingMimeType, setRecordingMimeType] = useState<string>('audio/webm');
 
   // --- Refs ---
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -180,6 +190,22 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   // --- Handlers & Logic (Copied from original page) ---
 
   const startRecording = async () => {
+    // <<< Add MimeType Probing Logic >>>
+    let selectedMimeType: string | null = null;
+    for (const mimeType of PREFERRED_MIME_TYPES) {
+        if (MediaRecorder.isTypeSupported(mimeType)) {
+            console.log(`Using supported mimeType: ${mimeType}`);
+            selectedMimeType = mimeType;
+            break; // Use the first supported preferred type
+        }
+    }
+    if (!selectedMimeType) {
+        selectedMimeType = 'audio/webm'; // Fallback if none preferred are supported
+        console.log(`No preferred mimeType supported, falling back to: ${selectedMimeType}`);
+    }
+    setRecordingMimeType(selectedMimeType); // Set state
+    // <<< End Probing Logic >>>
+
     setRecordingStatus(RecordingStatus.RequestingPermission);
     audioChunksRef.current = [];
     setProcessingState(ProcessingState.Idle);
@@ -197,7 +223,9 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
       setRecordingStatus(RecordingStatus.Recording);
       toast.success("Microphone access granted. Recording started.");
 
-      const recorder = new MediaRecorder(stream);
+      // <<< Initialize MediaRecorder with selected type >>>
+      const options = { mimeType: selectedMimeType }; 
+      const recorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (event) => {
@@ -205,7 +233,8 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
       };
 
       recorder.onstop = () => {
-        const completeBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        // <<< Create Blob with correct type >>>
+        const completeBlob = new Blob(audioChunksRef.current, { type: recordingMimeType });
         setRecordingStatus(RecordingStatus.Stopped);
         toast.info("Recording stopped. Processing...");
         if (audioStreamRef.current) {
@@ -292,7 +321,9 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
 
     let currentTranscription: string | null = null;
     const formData = new FormData();
-    formData.append('audio', blobToProcess, 'recording.webm');
+    formData.append('audio', blobToProcess); // Filename hint not strictly needed usually
+    // <<< Send MIME type to backend >>>
+    formData.append('mimeType', recordingMimeType); 
 
     try { // Transcription
         const response = await fetch('/api/transcribe', { method: 'POST', body: formData });

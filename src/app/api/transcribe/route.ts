@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const audioBlob = formData.get('audio') as Blob | null;
+    const mimeType = (formData.get('mimeType') as string | null) || 'audio/webm'; // Default if not sent
 
     if (!audioBlob) {
       return NextResponse.json({ error: 'No audio file uploaded.' }, { status: 400 });
@@ -25,9 +26,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
+    // Helper function to get extension
+    function getExtensionFromMimeType(mimeType: string): string {
+        if (mimeType.startsWith('audio/mp4')) return 'mp4';
+        if (mimeType.startsWith('audio/ogg')) return 'ogg';
+        if (mimeType.startsWith('audio/webm')) return 'webm';
+        // Add more specific types if needed
+        console.warn(`Unknown mimeType received: ${mimeType}, using .bin extension`);
+        return 'bin'; // Default binary extension
+    }
+
     // Save blob to a temporary file
     const buffer = Buffer.from(await audioBlob.arrayBuffer());
-    const filename = `audio-${Date.now()}.webm`; // Keep original extension hint
+    const fileExtension = getExtensionFromMimeType(mimeType);
+    const filename = `audio-${Date.now()}.${fileExtension}`;
     tempFilePath = path.join(os.tmpdir(), filename);
     await fs.promises.writeFile(tempFilePath, buffer);
     console.log(`Saved temporary audio to: ${tempFilePath}`);
