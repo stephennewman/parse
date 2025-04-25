@@ -84,6 +84,7 @@ const loadingMessages = [
 ];
 
 // <<< Define preferred MIME types - Updated & Expanded >>>
+/* <--- Comment out for experiment
 const PREFERRED_MIME_TYPES = [
     'audio/mp4', // Preferred for wider compatibility including Safari (usually AAC)
     'audio/aac', // Explicitly check AAC
@@ -93,6 +94,7 @@ const PREFERRED_MIME_TYPES = [
     'audio/webm', // Generic webm fallback
     // Less common, add if necessary: 'audio/wav', 'audio/mpeg' (mp3)
 ];
+*/ // <--- End comment for experiment
 
 // --- Component Props ---
 interface CaptureFormProps {
