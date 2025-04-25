@@ -83,12 +83,15 @@ const loadingMessages = [
     "Processing your thoughts...", "Consulting the digital oracle...",
 ];
 
-// <<< Define preferred MIME types >>>
+// <<< Define preferred MIME types - Updated & Expanded >>>
 const PREFERRED_MIME_TYPES = [
-    'audio/mp4', // Often supported on iOS/Safari (AAC codec)
-    'audio/webm;codecs=opus', // Generally good quality and widely supported
+    'audio/mp4', // Preferred for wider compatibility including Safari (usually AAC)
+    'audio/aac', // Explicitly check AAC
+    'audio/x-m4a', // Another potential identifier for M4A/AAC
+    'audio/webm;codecs=opus', // High quality, good support elsewhere
     'audio/ogg;codecs=opus', // Alternative container for Opus
-    'audio/webm', // Default fallback
+    'audio/webm', // Generic webm fallback
+    // Less common, add if necessary: 'audio/wav', 'audio/mpeg' (mp3)
 ];
 
 // --- Component Props ---
@@ -190,20 +193,28 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   // --- Handlers & Logic (Copied from original page) ---
 
   const startRecording = async () => {
-    // <<< Add MimeType Probing Logic >>>
+    // <<< Add MimeType Probing Logic with Detailed Logging >>>
+    console.log("Starting recording attempt. Probing MIME types...");
     let selectedMimeType: string | null = null;
     for (const mimeType of PREFERRED_MIME_TYPES) {
-        if (MediaRecorder.isTypeSupported(mimeType)) {
-            console.log(`Using supported mimeType: ${mimeType}`);
+        const isSupported = MediaRecorder.isTypeSupported(mimeType);
+        console.log(`- Checking ${mimeType}: ${isSupported ? 'SUPPORTED' : 'NOT SUPPORTED'}`);
+        if (isSupported && !selectedMimeType) { // Pick the first supported type from the preferred list
+            console.log(`>>> Selecting first supported mimeType: ${mimeType}`);
             selectedMimeType = mimeType;
-            break; // Use the first supported preferred type
+            // We break here to ensure we use the highest preference supported one
+             break; 
         }
     }
+
     if (!selectedMimeType) {
-        selectedMimeType = 'audio/webm'; // Fallback if none preferred are supported
-        console.log(`No preferred mimeType supported, falling back to: ${selectedMimeType}`);
+        selectedMimeType = 'audio/webm'; // Fallback if none of the preferred types are supported
+        console.warn(`No preferred mimeType supported by MediaRecorder. Falling back to default: ${selectedMimeType}`);
+    } else {
+         console.log(`Final selected mimeType for MediaRecorder: ${selectedMimeType}`);
     }
-    setRecordingMimeType(selectedMimeType); // Set state
+
+    setRecordingMimeType(selectedMimeType); // Set state with the determined MIME type
     // <<< End Probing Logic >>>
 
     setRecordingStatus(RecordingStatus.RequestingPermission);
