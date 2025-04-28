@@ -159,6 +159,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
                 .eq('template_id', formId)
                 .order('display_order', { ascending: true });
             if (fError) throw fError;
+            console.log('Fetched fields:', fData);
             setFields(fData || []);
 
         } catch (err) {

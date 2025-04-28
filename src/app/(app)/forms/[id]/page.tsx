@@ -16,6 +16,10 @@ import { Button } from '@/components/ui/button'; // Re-add Button import
 import { Edit, List, ExternalLink, Trash2 } from 'lucide-react'; // Removed Link2, Copy, Add Trash2
 import { toast } from 'sonner'; // Import toast
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+// Drag and drop imports
+// import { DndContext, closestCenter } from '@dnd-kit/core';
+// import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+// import { CSS } from '@dnd-kit/utilities';
 // Define types if not already globally available
 interface FormTemplate {
   id: string;
@@ -29,6 +33,16 @@ interface FormField {
   field_type: string;
   display_order: number;
   // Add other fields like 'options', 'internal_key' if needed
+}
+
+// --- Simple Field Card Component ---
+function FieldRow({ field }: { field: FormField }) {
+  return (
+    <div className="flex items-center text-xs py-1 px-2 border-b last:border-b-0">
+      <span className="font-medium text-gray-800 mr-2">{field.label}</span>
+      <span className="text-gray-500">({field.field_type})</span>
+    </div>
+  );
 }
 
 export default function FormDetailPage() {
@@ -225,10 +239,9 @@ export default function FormDetailPage() {
             variant="outline"
             size="sm"
             onClick={handleOpenLink}
-            disabled={!captureLink || isDeleting} // Disable while deleting
+            disabled={!captureLink || isDeleting}
             className="cursor-pointer"
           >
-            {/* Optional: Add an icon like ExternalLink if desired */}
             <ExternalLink className="mr-2 h-4 w-4" />
             View Form
           </Button>
@@ -260,74 +273,14 @@ export default function FormDetailPage() {
 
       <h2 className="text-xl font-semibold">Fields</h2>
       {fields.length > 0 ? (
-        <div className="space-y-4">
+        <div className="border rounded bg-white divide-y">
           {fields.map((field) => (
-            <Card key={field.id} className="bg-gray-50">
-              <CardContent className="p-4">
-                <p><strong>Label:</strong> {field.label}</p>
-                <p><strong>Type:</strong> {field.field_type}</p>
-                <p><strong>Order:</strong> {field.display_order}</p>
-                {/* Display other field properties like internal_key or options if needed */}
-              </CardContent>
-            </Card>
+            <FieldRow key={field.id} field={field} />
           ))}
         </div>
       ) : (
         <p>This form template has no fields defined.</p>
       )}
-
-      {/* --- Interactive Form Section for End Users --- */}
-      <div className="mt-8">
-        <div className="mb-4 flex gap-2 items-center">
-          <span className="font-medium">Entry Mode:</span>
-          <Button
-            variant={entryMode === 'manual' ? 'default' : 'outline'}
-            onClick={() => setEntryMode('manual')}
-          >
-            Manual Entry
-          </Button>
-          <Button
-            variant={entryMode === 'voice' ? 'default' : 'outline'}
-            onClick={() => setEntryMode('voice')}
-          >
-            Voice Input
-          </Button>
-        </div>
-        {entryMode === 'voice' ? (
-          <div className="p-4 border rounded bg-gray-50 text-gray-500">
-            {/* Placeholder for voice input UI */}
-            Voice input functionality coming soon.
-          </div>
-        ) : (
-          <form className="space-y-6">
-            {fields.map((field) => (
-              <div key={field.id} className="mb-4">
-                <label className="block font-medium mb-1">{field.label}</label>
-                {field.field_type === 'checkbox' ? (
-                  <RadioGroup
-                    value={formResponses[field.id] || ''}
-                    onValueChange={(val) => handleResponseChange(field.id, val)}
-                    className="flex gap-6"
-                  >
-                    <RadioGroupItem value="yes" id={`${field.id}-yes`} />
-                    <label htmlFor={`${field.id}-yes`} className="mr-4">Yes</label>
-                    <RadioGroupItem value="no" id={`${field.id}-no`} />
-                    <label htmlFor={`${field.id}-no`}>No</label>
-                  </RadioGroup>
-                ) : field.field_type === 'text' ? (
-                  <input
-                    type="text"
-                    className="border rounded px-2 py-1 w-full"
-                    value={formResponses[field.id] || ''}
-                    onChange={(e) => handleResponseChange(field.id, e.target.value)}
-                  />
-                ) : null}
-              </div>
-            ))}
-            <Button type="submit">Submit</Button>
-          </form>
-        )}
-      </div>
 
       {/* TODO: Add functionality to use this form (e.g., "Start Voice Input" button) */}
     </div>

@@ -171,9 +171,9 @@ export default function FormsPage() {
             <Button asChild>
               <Link href="/forms/new">Create New Form</Link>
             </Button>
-            <Button variant="outline" asChild>
+            {/* <Button variant="outline" asChild>
               <Link href="/forms/from-pdf">Create from PDF</Link>
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>

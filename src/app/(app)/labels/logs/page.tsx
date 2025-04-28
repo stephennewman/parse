@@ -63,9 +63,6 @@ export default function LogsPage() {
               </tbody>
             </table>
           </div>
-          <div className="mt-6">
-            <Link href="/labels" className="text-blue-600 hover:underline">&larr; Back to Labels</Link>
-          </div>
         </CardContent>
       </Card>
     </div>

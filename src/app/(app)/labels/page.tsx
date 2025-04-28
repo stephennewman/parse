@@ -78,15 +78,15 @@ export default function LabelsHomePage() {
         <Card>
           <CardHeader className="flex flex-row gap-3 items-center">
             <DatabaseIcon size={32} className="text-blue-600" />
-            <CardTitle>Inventory Database</CardTitle>
+            <CardTitle>Food Database</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="min-h-[48px] mb-4 flex items-center">
-              <p className="text-sm text-muted-foreground">Manage the inventory database for label selection.</p>
+              <p className="text-sm text-muted-foreground">Manage the food database for label selection.</p>
             </div>
             <div className="flex flex-col h-full justify-between">
               <Button asChild className="w-full">
-                <Link href="/labels/foods">Go to Inventory Database</Link>
+                <Link href="/labels/foods">Go to Food Database</Link>
               </Button>
             </div>
           </CardContent>
