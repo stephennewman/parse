@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { toast } from "sonner";
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Database as DatabaseIcon } from 'lucide-react';
 
 const SEED_ITEMS = [
   // Breakfast
@@ -152,21 +152,12 @@ export default function FoodDatabasePage() {
         <span>Food Database</span>
       </nav>
       <div className="mb-4 flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Food Database</h1>
+        <h1 className="text-2xl font-semibold flex items-center gap-2">
+          <DatabaseIcon className="text-blue-600" /> Food Database
+        </h1>
         <Button asChild>
           <a href="/labels/foods/add">+ Add Food Item</a>
         </Button>
-      </div>
-      {/* Most Popular Section */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Most Popular</h2>
-        <div className="flex flex-wrap gap-2">
-          {MOST_POPULAR.map(name => (
-            <span key={name} className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-              {name}
-            </span>
-          ))}
-        </div>
       </div>
       <Card>
         <CardHeader>
@@ -181,6 +172,7 @@ export default function FoodDatabasePage() {
                 <th className="text-left py-2 px-3">Shelf Life (days)</th>
                 <th className="text-left py-2 px-3">Allergens</th>
                 <th className="text-left py-2 px-3">Category</th>
+                <th className="text-left py-2 px-3">Reheat Only Once</th>
                 <th className="text-left py-2 px-3">Actions</th>
               </tr>
             </thead>
@@ -192,6 +184,7 @@ export default function FoodDatabasePage() {
                   <td className="py-2 px-3">{item.defaultShelfLifeDays}</td>
                   <td className="py-2 px-3">{item.allergens}</td>
                   <td className="py-2 px-3">{item.category}</td>
+                  <td className="py-2 px-3">{item.reheatOnlyOnce ? 'Yes' : 'No'}</td>
                   <td className="py-2 px-3 flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>Edit</Button>
                     <Button size="sm" variant="destructive" onClick={() => handleDelete(item.id)}>Delete</Button>
@@ -217,6 +210,14 @@ export default function FoodDatabasePage() {
               <Input type="number" min={1} placeholder="Shelf Life" value={editing.defaultShelfLifeDays} onChange={e => setEditing({ ...editing, defaultShelfLifeDays: Number(e.target.value) })} />
               <Input placeholder="Allergens" value={editing.allergens} onChange={e => setEditing({ ...editing, allergens: e.target.value })} />
               <Input placeholder="Category" value={editing.category} onChange={e => setEditing({ ...editing, category: e.target.value })} />
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!!editing.reheatOnlyOnce}
+                  onChange={e => setEditing({ ...editing, reheatOnlyOnce: e.target.checked })}
+                />
+                Reheat Only Once
+              </label>
             </div>
             <div className="flex gap-2 mt-4">
               <Button onClick={handleSaveEdit}>Save</Button>

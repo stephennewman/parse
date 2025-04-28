@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import Link from "next/link";
+import { List } from 'lucide-react';
 
 const MOCK_LOGS = [
   {
@@ -30,9 +31,11 @@ const MOCK_LOGS = [
 
 export default function LogsPage() {
   return (
-    <div className="w-full">
-      <Breadcrumbs items={[{ label: 'Labels', href: '/labels' }, { label: 'Log' }]} />
-      <h1 className="text-2xl font-semibold mb-4">Label Print Log</h1>
+    <div className="space-y-4">
+      <Breadcrumbs items={[{ label: 'Labels', href: '/labels' }, { label: 'Label Log' }]} />
+      <h1 className="text-2xl font-semibold flex items-center gap-2">
+        <List className="text-blue-600" /> Label Log
+      </h1>
       <Card>
         <CardHeader>
           <CardTitle>Label Print Log</CardTitle>

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { toast } from "sonner";
 import Link from "next/link";
-import { Printer } from 'lucide-react';
+import { Printer, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const STAFF_INITIALS = ["AB", "CD", "EF", "GH"];
 const CATEGORY_ORDER = ["Breakfast", "Lunch", "Dinner", "Misc"];
@@ -51,6 +52,8 @@ export default function PickPrintPage() {
   const [staff, setStaff] = useState<string>(STAFF_INITIALS[0]);
   const [search, setSearch] = useState("");
   const recognitionRef = useRef<any>(null);
+  const [printing, setPrinting] = useState(false);
+  const [printed, setPrinted] = useState(false);
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("food_db") || "[]");
@@ -89,6 +92,22 @@ export default function PickPrintPage() {
   );
 
   const grouped = groupByCategory(filtered);
+
+  // Print handler
+  const handlePrint = () => {
+    setPrinting(true);
+    setTimeout(() => {
+      setPrinting(false);
+      setPrinted(true);
+      toast.success("Label sent to printer! (mocked)");
+    }, 1200);
+  };
+
+  // Close out handler with animation
+  const handleCloseOut = () => {
+    setPrinted(false);
+    setTimeout(() => setSelected(null), 350); // match animation duration
+  };
 
   return (
     <div className="space-y-4">
@@ -177,8 +196,15 @@ export default function PickPrintPage() {
         </div>
         {/* Label Preview */}
         <div className="w-full md:w-[350px] lg:w-[400px] flex-shrink-0">
+          <AnimatePresence>
           {selected && (
-            <>
+            <motion.div
+              key={selected.id}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -24 }}
+              transition={{ duration: 0.35 }}
+            >
               <Card className="sticky top-24">
                 <CardHeader>
                   <CardTitle>Label Preview</CardTitle>
@@ -201,15 +227,33 @@ export default function PickPrintPage() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => toast.success("Label sent to printer! (mocked)")}>Print Label</Button>
+                  {!printed ? (
+                    <Button onClick={handlePrint} disabled={printing}>
+                      {printing ? (
+                        <span className="flex items-center gap-2"><Loader2 className="animate-spin h-4 w-4" /> Printing…</span>
+                      ) : (
+                        "Print Label"
+                      )}
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button onClick={handlePrint}>
+                        Print Again
+                      </Button>
+                      <Button variant="outline" onClick={handleCloseOut}>
+                        Close Out
+                      </Button>
+                    </div>
+                  )}
                 </CardFooter>
               </Card>
               {/* Metadata below preview */}
               <div className="mt-2 text-xs text-muted-foreground text-left">
                 Template: <a href="/labels/templates" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 hover:underline">{getTemplateType(selected.category)}</a>
               </div>
-            </>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

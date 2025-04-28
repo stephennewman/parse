@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import Link from "next/link";
+import { LayoutTemplate } from 'lucide-react';
 
 // Initial mocked templates
 const INITIAL_TEMPLATES = [
@@ -121,7 +122,10 @@ export default function TemplateManagementPage() {
 
   return (
     <div className="space-y-4">
-      <Breadcrumbs items={[{ label: 'Labels', href: '/labels' }, { label: 'Templates' }]} />
+      <Breadcrumbs items={[{ label: 'Labels', href: '/labels' }, { label: 'Label Templates' }]} />
+      <h1 className="text-2xl font-semibold flex items-center gap-2">
+        <LayoutTemplate className="text-blue-600" /> Label Templates
+      </h1>
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Label Templates</h1>
         <Button asChild>

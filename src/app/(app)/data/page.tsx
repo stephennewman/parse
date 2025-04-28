@@ -77,7 +77,7 @@ export default function DataPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold mb-4">All Form Fields</h1>
+      <h1 className="text-2xl font-semibold mb-4">Form Fields</h1>
 
       {loading && (
         <div className="flex justify-center items-center py-10">

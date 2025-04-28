@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+import { Edit } from 'lucide-react';
 
 // Mocked templates
 const MOCK_TEMPLATES = [
@@ -69,8 +70,10 @@ export default function LabelCreationPage() {
 
   return (
     <div className="space-y-4">
-      <Breadcrumbs items={[{ label: 'Labels', href: '/labels' }, { label: 'Label Creation' }]} />
-      <h1 className="text-2xl font-semibold">Label Creation</h1>
+      <Breadcrumbs items={[{ label: 'Labels', href: '/labels' }, { label: 'One-Time Labels' }]} />
+      <h1 className="text-2xl font-semibold flex items-center gap-2">
+        <Edit className="text-blue-600" /> One-Time Labels
+      </h1>
       <Card>
         <CardHeader>
           <CardTitle>Create Label</CardTitle>

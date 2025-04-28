@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
-import { Printer, LayoutTemplate, Edit, List, Database as DatabaseIcon } from 'lucide-react';
+import { Printer, LayoutTemplate, Edit, List, Database as DatabaseIcon, Bluetooth, BarChart2 } from 'lucide-react';
 
 export default function LabelsHomePage() {
   return (
@@ -87,6 +87,38 @@ export default function LabelsHomePage() {
             <div className="flex flex-col h-full justify-between">
               <Button asChild className="w-full">
                 <Link href="/labels/foods">Go to Inventory Database</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row gap-3 items-center">
+            <Bluetooth size={32} className="text-blue-600" />
+            <CardTitle>Printer Integration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="min-h-[48px] mb-4 flex items-center">
+              <p className="text-sm text-muted-foreground">Set up and connect to a Bluetooth printer for label printing.</p>
+            </div>
+            <div className="flex flex-col h-full justify-between">
+              <Button asChild className="w-full">
+                <Link href="/labels/printer">Go to Printer Integration</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row gap-3 items-center">
+            <BarChart2 size={32} className="text-blue-600" />
+            <CardTitle>Reporting</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="min-h-[48px] mb-4 flex items-center">
+              <p className="text-sm text-muted-foreground">View data visuals and analytics for label usage and inventory.</p>
+            </div>
+            <div className="flex flex-col h-full justify-between">
+              <Button asChild className="w-full">
+                <Link href="/labels/reporting">Go to Reporting</Link>
               </Button>
             </div>
           </CardContent>

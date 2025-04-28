@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 function genId() {
   return Math.random().toString(36).slice(2, 10);
@@ -12,7 +13,7 @@ function genId() {
 
 export default function AddFoodItemPage() {
   const router = useRouter();
-  const [draft, setDraft] = useState<any>({ name: "", storage: "Refrigerated", defaultShelfLifeDays: 3, allergens: "", category: "" });
+  const [draft, setDraft] = useState<any>({ name: "", storage: "Refrigerated", defaultShelfLifeDays: 3, allergens: "", category: "", reheatOnlyOnce: false });
   const [loading, setLoading] = useState(false);
 
   const handleAdd = (e: React.FormEvent) => {
@@ -32,7 +33,12 @@ export default function AddFoodItemPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-8">
+    <div>
+      <Breadcrumbs items={[
+        { label: 'Labels', href: '/labels' },
+        { label: 'Inventory Database', href: '/labels/foods' },
+        { label: 'Add Food Item' }
+      ]} />
       <Card>
         <CardHeader>
           <CardTitle>Add Food Item</CardTitle>
@@ -48,6 +54,14 @@ export default function AddFoodItemPage() {
             <Input type="number" min={1} placeholder="Shelf Life (days)" value={draft.defaultShelfLifeDays} onChange={e => setDraft({ ...draft, defaultShelfLifeDays: Number(e.target.value) })} required />
             <Input placeholder="Allergens" value={draft.allergens} onChange={e => setDraft({ ...draft, allergens: e.target.value })} />
             <Input placeholder="Category" value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })} required />
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={draft.reheatOnlyOnce}
+                onChange={e => setDraft({ ...draft, reheatOnlyOnce: e.target.checked })}
+              />
+              Reheat Only Once
+            </label>
           </CardContent>
           <CardFooter className="flex gap-2 justify-end">
             <Button type="button" variant="outline" onClick={() => router.push("/labels/foods")}>Cancel</Button>

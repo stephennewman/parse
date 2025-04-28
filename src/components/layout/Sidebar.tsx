@@ -15,8 +15,8 @@ export function Sidebar() {
     { href: '/', label: 'Home', icon: Home },
     { href: '/forms', label: 'Forms', icon: FileText }, // Example existing link
     { href: '/submissions', label: 'Submissions', icon: FileText }, // Example existing link
-    { href: '/labels', label: 'Labels', icon: Database }, // Added Labels link
-    { href: '/data', label: 'Data', icon: Database },
+    // {{ Add the new Data link here }}
+    { href: '/data', label: 'Form Fields', icon: Database },
   ];
 
   return (

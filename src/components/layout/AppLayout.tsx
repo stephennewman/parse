@@ -91,7 +91,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <li>
                   <NavItem href="/data">
                     <Database className="h-5 w-5" />
-                    Data
+                    Form Fields
                   </NavItem>
                 </li>
                 {/* Add more navigation links here */}
