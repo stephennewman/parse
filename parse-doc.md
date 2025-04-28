@@ -25,10 +25,15 @@
 - **Supabase Edge Function Build Fix:**
     - Added `// @ts-nocheck` to Deno-based Supabase function to prevent Next.js build/type errors.
 
-**AI Assistant Instructions:**
-*   **Read Newest First:** Please review this document starting from the most recent entries (usually at the top of sections like "Notes / Troubleshooting") to get the latest context before proceeding.
-*   **Use Dates:** Pay attention to the dates associated with notes to understand the timeline of decisions and issues.
-*   **Update Frequently:** This document should be updated regularly as development progresses.
+**AI Assistant Instructions (as of 2024-06-01):**
+
+- **Checkpoint Commit:** All changes up to the Bluetooth integration outline have been committed and pushed. This marks a clean state for the next phase.
+- **Next Step:** The next major task is to scaffold and implement Bluetooth printer integration on the Printer Integration page. See the outline in the previous chat for details.
+- **Read Newest First:** Please review this document starting from the most recent entries (usually at the top of sections like "Notes / Troubleshooting") to get the latest context before proceeding.
+- **Use Dates:** Pay attention to the dates associated with notes to understand the timeline of decisions and issues.
+- **Update Frequently:** This document should be updated regularly as development progresses.
+
+*User will start a new chat for the next phase of development (Bluetooth integration and beyond).*
 
 ---
 

@@ -7,16 +7,27 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Loader2, FilePlus, ListChecks, AlertCircle, LayoutGrid } from 'lucide-react';
+import { Loader2, FilePlus, ListChecks, AlertCircle, LayoutGrid, BarChart2, PieChart } from 'lucide-react';
+// If recharts is not installed, use placeholders for charts
+let BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Pie, Cell, PieChartComp;
+try {
+  // @ts-ignore
+  ({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Pie, Cell, PieChart: PieChartComp } = require('recharts'));
+} catch {}
 
-// Types (consider moving to a shared file)
-interface RecentSubmission {
-  id: string;
-  created_at: string;
-  form_templates: {
-    name: string;
-  } | null;
-}
+// Fake/demo data fallback
+const FAKE_LABELS_PER_DAY = [4, 7, 2, 9, 5, 3, 6];
+const FAKE_COMPLIANCE = [
+  { name: "Compliant", value: 32 },
+  { name: "Non-Compliant", value: 4 },
+];
+const FAKE_RECENT = [
+  { labelType: "Prep Label", food: "Scrambled Eggs", compliance: "Compliant", date: "2024-06-01 10:15" },
+  { labelType: "Consumer Label", food: "Chicken Salad", compliance: "Missing Allergen", date: "2024-06-01 11:00" },
+  { labelType: "Prep Label", food: "Mac & Cheese", compliance: "Compliant", date: "2024-06-01 12:30" },
+  { labelType: "Prep Label", food: "Fruit Cup", compliance: "Compliant", date: "2024-06-01 13:00" },
+  { labelType: "Consumer Label", food: "Apple Pie", compliance: "Compliant", date: "2024-06-01 14:00" },
+];
 
 export default function DashboardPage() {
   const supabase = createClientComponentClient();
@@ -26,6 +37,14 @@ export default function DashboardPage() {
   const [totalSubmissions, setTotalSubmissions] = useState<number>(0);
   const [recentSubmissions, setRecentSubmissions] = useState<RecentSubmission[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Real data hooks (replace with real fetch if available)
+  const [labelsPerDay, setLabelsPerDay] = useState<number[]>(FAKE_LABELS_PER_DAY);
+  const [compliance, setCompliance] = useState(FAKE_COMPLIANCE);
+  const [recent, setRecent] = useState(FAKE_RECENT);
+  const totalThisWeek = labelsPerDay.reduce((a, b) => a + b, 0);
+  const uniqueFoods = 7; // Fake/demo
+  const complianceRate = Math.round((compliance[0].value / (compliance[0].value + compliance[1].value)) * 100);
 
   useEffect(() => {
     const getUser = async () => {
@@ -109,92 +128,126 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-sm font-semibold mb-4">Dashboard</h1>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold mb-4 flex items-center gap-2"><LayoutGrid className="text-blue-600" /> Dashboard</h1>
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Forms</CardTitle>
-            <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalForms}</div>
+          <CardContent className="flex flex-col items-center py-6">
+            <BarChart2 className="text-blue-600 mb-2" size={32} />
+            <div className="text-3xl font-bold text-blue-700">{totalThisWeek}</div>
+            <div className="text-sm text-blue-800">Labels Printed This Week</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-            <ListChecks className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSubmissions}</div>
+          <CardContent className="flex flex-col items-center py-6">
+            <ListChecks className="text-green-600 mb-2" size={32} />
+            <div className="text-3xl font-bold text-green-700">{uniqueFoods}</div>
+            <div className="text-sm text-green-800">Unique Food Items Labeled</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col items-center py-6">
+            <PieChart className="text-purple-600 mb-2" size={32} />
+            <div className="text-3xl font-bold text-purple-700">{complianceRate}%</div>
+            <div className="text-sm text-purple-800">Compliance Rate</div>
           </CardContent>
         </Card>
       </div>
-
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Submissions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recentSubmissions.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Template</TableHead>
-                      <TableHead>Submitted At</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentSubmissions.map((sub) => (
-                      <TableRow key={sub.id}>
-                        <TableCell className="font-medium">{sub.form_templates?.name ?? 'Unknown'}</TableCell>
-                        <TableCell>{format(new Date(sub.created_at), 'PP p')}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/submissions/${sub.id}`}>View</Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+      {/* Charts row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Labels Printed (Last 7 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {BarChart ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={labelsPerDay.map((v, i) => ({ day: ['S','M','T','W','T','F','S'][i], value: v }))}>
+                  <XAxis dataKey="day" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-end gap-2 h-32">
+                {labelsPerDay.map((val, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <div className="bg-blue-500 rounded w-6" style={{ height: `${val * 12}px` }}></div>
+                    <div className="text-xs mt-1">{['S','M','T','W','T','F','S'][i]}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Compliance Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {PieChartComp ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChartComp>
+                  <Pie data={compliance} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
+                    {compliance.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? "#22c55e" : "#f43f5e"} />
                     ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No recent submissions found.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-4 lg:col-span-1">
-           <Card>
-             <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-             </CardHeader>
-             <CardContent className="flex flex-col space-y-3">
-                <Button asChild>
-                    <Link href="/forms/new" className="flex items-center justify-center gap-2">
-                        <FilePlus className="h-4 w-4" /> Create New Form
-                    </Link>
-                </Button>
-                 <Button variant="outline" asChild>
-                    <Link href="/submissions" className="flex items-center justify-center gap-2">
-                        <ListChecks className="h-4 w-4" /> View All Submissions
-                    </Link>
-                </Button>
-                 <Button variant="outline" asChild>
-                    <Link href="/forms" className="flex items-center justify-center gap-2">
-                         <LayoutGrid className="h-4 w-4" /> Manage Forms
-                    </Link>
-                </Button>
-             </CardContent>
-           </Card>
-        </div>
+                  </Pie>
+                  <Tooltip />
+                </PieChartComp>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex gap-4 items-center justify-center h-32">
+                <div className="w-20 h-20 rounded-full border-8 border-green-400 border-r-red-400 flex items-center justify-center text-lg font-bold text-green-700">
+                  {complianceRate}%
+                </div>
+                <div>
+                  <div className="text-green-600 font-semibold">Compliant</div>
+                  <div className="text-red-600 font-semibold">Non-Compliant</div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+      {/* Recent activity table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Label Prints</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Label Type</TableHead>
+                <TableHead>Food Item</TableHead>
+                <TableHead>Compliance</TableHead>
+                <TableHead>Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recent.map((row, i) => (
+                <TableRow key={i}>
+                  <TableCell>{row.labelType}</TableCell>
+                  <TableCell>{row.food}</TableCell>
+                  <TableCell>
+                    <span className={
+                      row.compliance === "Compliant"
+                        ? "inline-block px-2 py-1 rounded bg-green-100 text-green-700 text-xs"
+                        : "inline-block px-2 py-1 rounded bg-red-100 text-red-700 text-xs"
+                    }>
+                      {row.compliance}
+                    </span>
+                  </TableCell>
+                  <TableCell>{row.date}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 } 
