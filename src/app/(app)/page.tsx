@@ -8,12 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { Loader2, FilePlus, ListChecks, AlertCircle, LayoutGrid, BarChart2, PieChart } from 'lucide-react';
-// If recharts is not installed, use placeholders for charts
-let BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Pie, Cell, PieChartComp;
-try {
-  // @ts-ignore
-  ({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Pie, Cell, PieChart: PieChartComp } = require('recharts'));
-} catch {}
 
 // Fake/demo data fallback
 const FAKE_LABELS_PER_DAY = [4, 7, 2, 9, 5, 3, 6];
@@ -35,7 +29,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalForms, setTotalForms] = useState<number>(0);
   const [totalSubmissions, setTotalSubmissions] = useState<number>(0);
-  const [recentSubmissions, setRecentSubmissions] = useState<RecentSubmission[]>([]);
+  const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
   // Real data hooks (replace with real fetch if available)
@@ -45,6 +39,28 @@ export default function DashboardPage() {
   const totalThisWeek = labelsPerDay.reduce((a, b) => a + b, 0);
   const uniqueFoods = 7; // Fake/demo
   const complianceRate = Math.round((compliance[0].value / (compliance[0].value + compliance[1].value)) * 100);
+
+  // Chart components state
+  const [chartComponents, setChartComponents] = useState<any>({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const recharts = await import('recharts');
+        setChartComponents({
+          BarChart: recharts.BarChart,
+          Bar: recharts.Bar,
+          XAxis: recharts.XAxis,
+          YAxis: recharts.YAxis,
+          Tooltip: recharts.Tooltip,
+          ResponsiveContainer: recharts.ResponsiveContainer,
+          Pie: recharts.Pie,
+          Cell: recharts.Cell,
+          PieChartComp: recharts.PieChart,
+        });
+      } catch {}
+    })();
+  }, []);
 
   useEffect(() => {
     const getUser = async () => {
@@ -96,7 +112,7 @@ export default function DashboardPage() {
 
         setTotalForms(formsCountRes.count ?? 0);
         setTotalSubmissions(submissionsCountRes.count ?? 0);
-        setRecentSubmissions((recentSubsRes.data as unknown as RecentSubmission[]) || []); 
+        setRecentSubmissions((recentSubsRes.data as unknown as any[]) || []); 
 
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -126,6 +142,8 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Pie, Cell, PieChartComp } = chartComponents;
 
   return (
     <div className="space-y-6">
