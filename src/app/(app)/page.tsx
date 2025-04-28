@@ -52,11 +52,13 @@ export default function DashboardPage() {
           supabase
             .from('form_templates')
             .select('count', { count: 'exact', head: true })
-            .eq('user_id', userId),
+            // .eq('user_id', userId)
+          ,
           supabase
             .from('form_submissions')
             .select('count', { count: 'exact', head: true })
-            .eq('user_id', userId),
+            // .eq('user_id', userId)
+          ,
           supabase
             .from('form_submissions')
             .select(`
@@ -64,9 +66,9 @@ export default function DashboardPage() {
               created_at,
               form_templates!inner ( name )
             `)
-            .eq('user_id', userId)
+            // .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(5),
+            .limit(5)
         ]);
 
         if (formsCountRes.error) throw new Error(`Form count error: ${formsCountRes.error.message}`);

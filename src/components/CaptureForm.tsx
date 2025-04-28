@@ -22,6 +22,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Slider } from "@/components/ui/slider";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 // Note: Tabs were commented out in original page due to build issues
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import { Slider } from "@/components/ui/slider";
 interface FormTemplate {
   id: string;
   name: string;
+  description?: string;
 }
 interface FormField {
   id: string;
@@ -124,6 +126,11 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   const [currentPhase, setCurrentPhase] = useState<CapturePhase>(CapturePhase.Prompting);
   // <<< Add state for MIME type >>>
   const [recordingMimeType, setRecordingMimeType] = useState<string>('audio/webm');
+  // Add entry mode state for public forms
+  const [entryMode, setEntryMode] = useState<'manual' | 'voice'>(isPublic ? 'manual' : 'voice');
+  // Manual form state for public mode
+  const [manualResponses, setManualResponses] = useState<Record<string, string>>( {} );
+  const [manualSubmitting, setManualSubmitting] = useState(false);
 
   // --- Refs ---
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -139,7 +146,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
         try {
             const { data: tData, error: tError } = await supabase
                 .from('form_templates')
-                .select('id, name')
+                .select('id, name, description')
                 .eq('id', formId)
                 .single();
             if (tError) throw tError;
@@ -520,6 +527,55 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
     }
   };
 
+  const handleManualChange = (field: FormField, value: string) => {
+    setManualResponses((prev) => ({ ...prev, [field.internal_key]: value }));
+  };
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setManualSubmitting(true);
+    try {
+      const payload: SubmissionPayload = {
+        template_id: formId,
+        form_data: manualResponses,
+      };
+      const { error } = await supabase.from('form_submissions').insert([payload]);
+      if (error) throw error;
+      toast.success('Form submitted successfully! Redirecting...');
+      router.push('/form/submitted');
+    } catch (err) {
+      toast.error('Failed to submit form.');
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
+
+  // --- Select All Yes/No for manual mode ---
+  const selectAllYes = () => {
+    const updated: Record<string, string> = {};
+    fields.forEach(field => {
+      if (field.field_type === 'checkbox') {
+        updated[field.internal_key] = 'yes';
+      }
+    });
+    setManualResponses(prev => ({ ...prev, ...updated }));
+  };
+  const selectAllNo = () => {
+    const updated: Record<string, string> = {};
+    fields.forEach(field => {
+      if (field.field_type === 'checkbox') {
+        updated[field.internal_key] = 'no';
+      }
+    });
+    setManualResponses(prev => ({ ...prev, ...updated }));
+  };
+
+  // --- Only show select all if all fields are checkbox ---
+  const allCheckboxFields = fields.length > 0 && fields.every(field => field.field_type === 'checkbox');
+
+  // --- Show select all if there are 2+ checkbox fields ---
+  const checkboxFields = fields.filter(field => field.field_type === 'checkbox');
+
   // --- Render Helpers (Copied from original page) ---
   const renderFieldHints = (field: FormField) => {
       switch (field.field_type) {
@@ -616,75 +672,153 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
 
   return (
     <div className="space-y-6">
-      {/* Template name could be styled differently for public vs private */}
-      <h1 className="text-xl font-semibold">Form: {template.name}</h1>
+      <h1 className="text-xl font-semibold">{template.name}</h1>
 
-      {/* === Phase-Based Rendering === */}
-      {currentPhase === CapturePhase.Prompting && (
-          <div className="space-y-4 p-4 border rounded-md bg-blue-50">
-              <h2 className="text-lg font-medium">Instructions</h2>
-              <p>Click &quot;Start Recording&quot; and clearly state the information for the following fields:</p>
-              <ul className="list-disc pl-5 space-y-1">{fields.length > 0 ? fields.map(field => (<li key={field.id}>{field.label}{renderFieldHints(field) && <span className="text-sm text-gray-600 ml-2">({renderFieldHints(field)})</span>}</li>)) : <li>No fields defined.</li>}</ul>
-              {recordingStatus === RecordingStatus.PermissionDenied && <p className="text-yellow-600 font-medium">Microphone permission denied. Please enable it in your browser settings.</p>}
-          </div>
+      {/* --- Entry Mode Toggle for Public Forms --- */}
+      {isPublic && (entryMode === 'manual' || currentPhase === CapturePhase.Prompting) && (
+        <div className="mb-4 flex gap-2 items-center justify-center">
+          <span className="font-medium">Entry Mode:</span>
+          <Button
+            variant={entryMode === 'manual' ? 'default' : 'outline'}
+            onClick={() => setEntryMode('manual')}
+          >
+            Regular Input
+          </Button>
+          <Button
+            variant={entryMode === 'voice' ? 'default' : 'outline'}
+            onClick={() => setEntryMode('voice')}
+          >
+            Voice Input
+          </Button>
+        </div>
       )}
-      {currentPhase === CapturePhase.Recording && (
-          <div className="space-y-4 p-4 border rounded-md bg-red-50">
-              <h2 className="text-lg font-medium text-red-700 flex items-center"><Mic className="h-5 w-5 mr-2 animate-pulse" /> Recording...</h2>
-              <p>Please provide information for:</p>
-              <ul className="list-disc pl-5 space-y-1">{fields.map(field => (<li key={field.id}>{field.label}{renderFieldHints(field) && <span className="text-sm text-gray-600 ml-2">({renderFieldHints(field)})</span>}</li>))}</ul>
-          </div>
-      )}
-      {currentPhase === CapturePhase.Processing && (
-          <div className="space-y-4 p-4 border rounded-md bg-gray-50">
-              <h2 className="text-lg font-medium mb-2">Processing Recording</h2>
-              <div className="flex items-center justify-center p-4"><BrainCircuit className="h-6 w-6 animate-spin text-indigo-600" /><span className="ml-3 text-gray-700 font-medium">{currentLoadingMessage}</span></div>
-          </div>
-      )}
-      {currentPhase === CapturePhase.Reviewing && (
-          <div className="space-y-4 p-4 border rounded-md bg-green-50">
-              <h2 className="text-lg font-medium">Review & Edit</h2>
-              <p>Please review the extracted information and make any necessary corrections before saving.</p>
-               {transcription && (
-                   <div className="mt-2">
-                       <Label htmlFor="final-transcription" className="block text-sm font-medium text-gray-700 mb-1">Final Transcription:</Label>
-                       <Textarea id="final-transcription" readOnly value={transcription} rows={3} className="w-full bg-white text-sm" />
-                   </div>
-               )}
-               <div className="space-y-4 pt-4 border-t mt-4">
-                   {fields.length > 0 ? ( fields.map(field => (<div key={field.id}><Label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700 mb-1">{field.label}</Label>{renderFieldInput(field)}</div>)) ) : ( <p>No fields defined.</p> )}
-               </div>
-               {processingError && <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>}
-          </div>
-      )}
-       {currentPhase === CapturePhase.Error && processingError && (
-           <div className="space-y-4 p-4 border rounded-md bg-red-50">
-               <h2 className="text-lg font-medium text-red-700">Error</h2>
-               <p>{processingError}</p>
-               {transcription && (<div className="mt-2"><Label htmlFor="error-transcription" className="block text-sm font-medium text-gray-700 mb-1">Transcription (if available):</Label><Textarea id="error-transcription" readOnly value={transcription} rows={3} className="w-full bg-white text-sm" /></div>)}
-           </div>
-       )}
 
-      {/* Bottom Controls */}
-      <div className="flex justify-center items-center space-x-4 p-4 border-t mt-4">
-          {(canStartRecording || canStopRecording) && (
-            <Button 
-              onClick={handleRecordClick} 
-              size="lg" 
-              disabled={interactionDisabled || (currentPhase === CapturePhase.Prompting && recordingStatus === RecordingStatus.PermissionDenied)} 
-              className={`cursor-pointer ${isRecording ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"} disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isRequestingMic ? <Mic className="mr-2 h-5 w-5 animate-pulse" /> : isRecording ? <MicOff className="mr-2 h-5 w-5" /> : <Mic className="mr-2 h-5 w-5" />}
-              {isRequestingMic ? "Requesting Mic..." : isRecording ? "Stop Recording" : (currentPhase === CapturePhase.Reviewing || currentPhase === CapturePhase.Error) ? "Record Again" : "Start Recording" }
-            </Button>
+      {/* --- Manual Entry Form for Public Users --- */}
+      {isPublic && entryMode === 'manual' ? (
+        <Card className="max-w-2xl mx-auto shadow-lg">
+          <CardContent>
+            {checkboxFields.length >= 2 && (
+              <div className="flex gap-4 mb-4 justify-end">
+                <Button type="button" variant="outline" onClick={selectAllYes}>Select All Yes</Button>
+                <Button type="button" variant="outline" onClick={selectAllNo}>Select All No</Button>
+              </div>
+            )}
+            <form className="space-y-6" onSubmit={handleManualSubmit}>
+              {fields.map((field) => (
+                <div key={field.id} className="p-4 bg-gray-50 rounded-lg border mb-4 flex items-center justify-between gap-4">
+                  <label className="block font-medium text-lg flex-1 pr-4">{field.label}</label>
+                  <div className="flex-shrink-0">
+                    {field.field_type === 'checkbox' ? (
+                      <RadioGroup
+                        value={manualResponses[field.internal_key] || ''}
+                        onValueChange={(val) => handleManualChange(field, val)}
+                        className="flex gap-8"
+                      >
+                        <div className="flex items-center gap-2">
+                          <RadioGroupItem value="yes" id={`${field.id}-yes`} />
+                          <label htmlFor={`${field.id}-yes`} className="mr-4 text-base">Yes</label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <RadioGroupItem value="no" id={`${field.id}-no`} />
+                          <label htmlFor={`${field.id}-no`} className="text-base">No</label>
+                        </div>
+                      </RadioGroup>
+                    ) : field.field_type === 'text' && /date/i.test(field.label) ? (
+                      <Input
+                        type="date"
+                        value={manualResponses[field.internal_key] || ''}
+                        onChange={(e) => handleManualChange(field, e.target.value)}
+                        className="min-w-[180px]"
+                      />
+                    ) : field.field_type === 'text' ? (
+                      <Input
+                        type="text"
+                        value={manualResponses[field.internal_key] || ''}
+                        onChange={(e) => handleManualChange(field, e.target.value)}
+                        className="min-w-[180px]"
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-center pt-4">
+                <Button type="submit" size="lg" disabled={manualSubmitting}>
+                  {manualSubmitting ? 'Submitting...' : 'Submit'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ) : (
+        // === Phase-Based Rendering ===
+        <>
+          {currentPhase === CapturePhase.Prompting && (
+              <div className="space-y-4 p-4 border rounded-md bg-blue-50">
+                  <h2 className="text-lg font-medium">Instructions</h2>
+                  <p>Click &quot;Start Recording&quot; and clearly state the information for the following fields:</p>
+                  <ul className="list-disc pl-5 space-y-1">{fields.length > 0 ? fields.map(field => (<li key={field.id}>{field.label}{renderFieldHints(field) && <span className="text-sm text-gray-600 ml-2">({renderFieldHints(field)})</span>}</li>)) : <li>No fields defined.</li>}</ul>
+                  {recordingStatus === RecordingStatus.PermissionDenied && <p className="text-yellow-600 font-medium">Microphone permission denied. Please enable it in your browser settings.</p>}
+              </div>
           )}
-        {showSaveButton && (
-             <Button onClick={handleSaveSubmission} size="lg" disabled={isSaving} className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-wait">
-                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
-                {isSaving ? 'Saving...' : (isPublic ? 'Submit Form' : 'Save Submission')}
-            </Button>
-        )}
-      </div>
+          {currentPhase === CapturePhase.Recording && (
+              <div className="space-y-4 p-4 border rounded-md bg-red-50">
+                  <h2 className="text-lg font-medium text-red-700 flex items-center"><Mic className="h-5 w-5 mr-2 animate-pulse" /> Recording...</h2>
+                  <p>Please provide information for:</p>
+                  <ul className="list-disc pl-5 space-y-1">{fields.map(field => (<li key={field.id}>{field.label}{renderFieldHints(field) && <span className="text-sm text-gray-600 ml-2">({renderFieldHints(field)})</span>}</li>))}</ul>
+              </div>
+          )}
+          {currentPhase === CapturePhase.Processing && (
+              <div className="space-y-4 p-4 border rounded-md bg-gray-50">
+                  <h2 className="text-lg font-medium mb-2">Processing Recording</h2>
+                  <div className="flex items-center justify-center p-4"><BrainCircuit className="h-6 w-6 animate-spin text-indigo-600" /><span className="ml-3 text-gray-700 font-medium">{currentLoadingMessage}</span></div>
+              </div>
+          )}
+          {currentPhase === CapturePhase.Reviewing && (
+              <div className="space-y-4 p-4 border rounded-md bg-green-50">
+                  <h2 className="text-lg font-medium">Review & Edit</h2>
+                  <p>Please review the extracted information and make any necessary corrections before saving.</p>
+                   {transcription && (
+                       <div className="mt-2">
+                           <Label htmlFor="final-transcription" className="block text-sm font-medium text-gray-700 mb-1">Final Transcription:</Label>
+                           <Textarea id="final-transcription" readOnly value={transcription} rows={3} className="w-full bg-white text-sm" />
+                       </div>
+                   )}
+                   <div className="space-y-4 pt-4 border-t mt-4">
+                       {fields.length > 0 ? ( fields.map(field => (<div key={field.id}><Label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700 mb-1">{field.label}</Label>{renderFieldInput(field)}</div>)) ) : ( <p>No fields defined.</p> )}
+                   </div>
+                   {processingError && <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>}
+              </div>
+          )}
+           {currentPhase === CapturePhase.Error && processingError && (
+               <div className="space-y-4 p-4 border rounded-md bg-red-50">
+                   <h2 className="text-lg font-medium text-red-700">Error</h2>
+                   <p>{processingError}</p>
+                   {transcription && (<div className="mt-2"><Label htmlFor="error-transcription" className="block text-sm font-medium text-gray-700 mb-1">Transcription (if available):</Label><Textarea id="error-transcription" readOnly value={transcription} rows={3} className="w-full bg-white text-sm" /></div>)}
+               </div>
+           )}
+
+          {/* Bottom Controls */}
+          <div className="flex justify-center items-center space-x-4 p-4 border-t mt-4">
+              {(canStartRecording || canStopRecording) && (
+                <Button 
+                  onClick={handleRecordClick} 
+                  size="lg" 
+                  disabled={interactionDisabled || (currentPhase === CapturePhase.Prompting && recordingStatus === RecordingStatus.PermissionDenied)} 
+                  className={`cursor-pointer ${isRecording ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isRequestingMic ? <Mic className="mr-2 h-5 w-5 animate-pulse" /> : isRecording ? <MicOff className="mr-2 h-5 w-5" /> : <Mic className="mr-2 h-5 w-5" />}
+                  {isRequestingMic ? "Requesting Mic..." : isRecording ? "Stop Recording" : (currentPhase === CapturePhase.Reviewing || currentPhase === CapturePhase.Error) ? "Record Again" : "Start Recording" }
+                </Button>
+              )}
+            {showSaveButton && (
+                 <Button onClick={handleSaveSubmission} size="lg" disabled={isSaving} className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-wait">
+                    {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
+                    {isSaving ? 'Saving...' : (isPublic ? 'Submit Form' : 'Save Submission')}
+                </Button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 } 

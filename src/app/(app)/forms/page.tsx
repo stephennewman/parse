@@ -167,14 +167,14 @@ export default function FormsPage() {
           )}
 
           {/* Create New Form Button */}
-          <Button
-            className="bg-black text-white hover:bg-gray-800"
-            size="sm"
-            asChild
-            disabled={isDeleting} // Disable while deleting
-          >
-            <Link href="/forms/new">Create New Form</Link>
-          </Button>
+          <div className="flex gap-2 mb-4">
+            <Button asChild>
+              <Link href="/forms/new">Create New Form</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/forms/from-pdf">Create from PDF</Link>
+            </Button>
+          </div>
         </div>
       </div>
 

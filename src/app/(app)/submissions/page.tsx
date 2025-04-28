@@ -49,7 +49,7 @@ export default function AllSubmissionsPage() {
             user_id,
             form_templates!inner ( name )
           `)
-          .eq('user_id', session.user.id) // Only fetch user's submissions
+          // .eq('user_id', session.user.id) // Removed user_id filter
           .order('created_at', { ascending: false });
 
         if (fetchError) throw fetchError;

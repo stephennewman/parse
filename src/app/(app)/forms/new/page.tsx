@@ -2,7 +2,7 @@
 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -53,6 +53,54 @@ function generateInternalKey(label: string): string {
     .replace(/\s+/g, '_') // Replace spaces with underscores
     .replace(/[^a-z0-9_]/g, ''); // Remove non-alphanumeric characters except underscore
 }
+
+const PREPOPULATED_FIELDS: FormFieldState[] = [
+  { id: crypto.randomUUID(), fieldName: "Date", fieldType: "text" },
+  { id: crypto.randomUUID(), fieldName: "Staff Appearance: Uniforms worn with name tags visible", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Staff Appearance: Proper hair/beard restraint worn with no hair exposed", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Breakfast Tray-line: Spreadsheet available in view", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Breakfast Tray-line: Items being served matches the spreadsheet", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Breakfast Tray-line: Steam table set-up properly", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Breakfast Tray-line: Proper serving utensils being used", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Breakfast Tray-line: Temperatures checked and recorded", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Dry Storage Room: Items off the floor", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Dry Storage Room: Items stored 18\" from ceiling/sprinkler head", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Dry Storage Room: Opened items covered tightly, labeled and dated", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Dry Storage Room: Free of personal items", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Dry Storage Room: Empty boxes removed", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Janitor Closet: Mop bucket emptied", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Janitor Closet: Mop and brooms hung on hanger", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Janitor Closet: Dustpan clean and stored on hanger", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Janitor Closet: Free of odors", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Paper Storage Room: Items off the floor", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Paper Storage Room: Items stored 18\" from ceiling/sprinkler head", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Paper Storage Room: Free of personal items", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Paper Storage Room: Empty boxes removed", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Walk-in Cooler: All items labeled and dated correctly", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Walk-in Cooler: Items stored correctly", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Walk-in Cooler: Temperature checked and recorded correctly", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Walk-in Freezer: Items stored and labeled correctly", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Walk-in Freezer: Free of ice build-up", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Walk-in Freezer: Temperature checked and recorded correctly", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Reach-in Refrigerator: Items properly covered, labeled and dated", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Reach-in Refrigerator: Temperature checked and recorded correctly", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Tray-line Refrigerator: Items properly covered, labeled and dated", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Tray-line Refrigerator: Temperature checked and recorded correctly", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Hand Washing Sinks: Clean", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Hand Washing Sinks: Soap available", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Hand Washing Sinks: Paper towels available", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Pantry: Temperatures checked and recorded daily", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Pantry: Resident food labeled, dated with name, date brought in, and discard date", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Pantry: Equipment clean", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Meal Production: Daily menu posted and is correct", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Meal Production: All food items available for lunch and dinner meal per menu", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Other Areas: Dumpster area clean and lids/doors closed", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Other Areas: Trash cans covered", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Other Areas: Sanitation buckets available with adequate ppm", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Other Areas: Dish machine temperatures recorded", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Other Areas: 3-compartment sanitizing PPM recorded and adequate", fieldType: "checkbox" },
+  { id: crypto.randomUUID(), fieldName: "Other Areas: Cleaning schedules initialed", fieldType: "checkbox" }
+];
 
 export default function NewFormPage() {
   const [formTitle, setFormTitle] = useState("");
@@ -246,6 +294,14 @@ export default function NewFormPage() {
     });
   };
 
+  useEffect(() => {
+    if (fields.length === 0) {
+      setFields(PREPOPULATED_FIELDS);
+      setFormTitle("Culinary Manager - AM Daily Walk-thru Checklist");
+    }
+    // eslint-disable-next-line
+  }, []);
+
   // --- Define breadcrumb items for this page ---
   const breadcrumbItems = [
     { label: "Forms", href: "/forms" },
@@ -286,6 +342,9 @@ export default function NewFormPage() {
           </div>
 
           <Separator />
+          <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded">
+            <strong>Tip:</strong> You can fill out this checklist by <b>tapping the boxes</b> below, or by using voice input if available.
+          </div>
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Form Fields</h3>
             <div className="space-y-4">
