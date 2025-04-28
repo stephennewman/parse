@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Gauge, LayoutGrid, ListChecks } from 'lucide-react';
+import { Gauge, LayoutGrid, ListChecks, Database, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -54,8 +54,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* App Title Area */}
           <div className="mb-6 px-3"> {/* Added title here with bottom margin */}
             <img
-              src="https://s3.ca-central-1.amazonaws.com/logojoy/logos/218980835/no_padding.png?93861.20000000298"
-              alt="Parse Logo"
+              src="https://www.checkit.net/hubfs/website/img/brand/checkit-logo-horizontal-standard-rgb-blue.svg"
+              alt="Checkit Logo"
               className="h-16 w-auto" // Set height to h-16, width auto maintains aspect ratio
             />
           </div>
@@ -80,6 +80,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <NavItem href="/submissions">
                     <ListChecks className="h-5 w-5" />
                     Submissions
+                  </NavItem>
+                </li>
+                <li>
+                  <NavItem href="/labels">
+                    <Tag className="h-5 w-5" />
+                    Labels
+                  </NavItem>
+                </li>
+                <li>
+                  <NavItem href="/data">
+                    <Database className="h-5 w-5" />
+                    Data
                   </NavItem>
                 </li>
                 {/* Add more navigation links here */}
