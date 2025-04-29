@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Loader2, FilePlus, ListChecks, AlertCircle, LayoutGrid, BarChart2, PieChart } from 'lucide-react';
+import { Loader2, FilePlus, ListChecks, AlertCircle, LayoutGrid, BarChart2, PieChart, Gauge } from 'lucide-react';
 
 // Fake/demo data fallback
 const FAKE_LABELS_PER_DAY = [4, 7, 2, 9, 5, 3, 6];
@@ -147,7 +147,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold mb-4 flex items-center gap-2"><LayoutGrid className="text-blue-600" /> Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2"><Gauge className="text-blue-600" size={28} /> Home</h1>
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

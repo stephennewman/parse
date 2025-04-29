@@ -17,7 +17,7 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ href, children }) => {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const isActive = pathname === href || (href !== '/' && pathname.startsWith(href));
 
   return (
@@ -67,7 +67,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <li>
                   <NavItem href="/">
                     <Gauge className="h-5 w-5" />
-                    Dashboard
+                    Home
                   </NavItem>
                 </li>
                 <li>

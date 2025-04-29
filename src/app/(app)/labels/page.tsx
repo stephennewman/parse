@@ -3,13 +3,19 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
-import { Printer, LayoutTemplate, Edit, List, Database as DatabaseIcon, Bluetooth, BarChart2 } from 'lucide-react';
+import { Printer, LayoutTemplate, Edit, List, Database as DatabaseIcon, Bluetooth, BarChart2, Tag } from 'lucide-react';
 
 export default function LabelsHomePage() {
   return (
     <div className="space-y-4">
-      <Breadcrumbs items={[{ label: 'Labels' }]} />
-      <h1 className="text-2xl font-semibold">Labels</h1>
+      <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+        <ol className="list-reset flex">
+          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><span className="mx-2">/</span></li>
+          <li className="text-gray-700">Labels</li>
+        </ol>
+      </nav>
+      <h1 className="text-2xl font-bold flex items-center gap-2 mb-4"><Tag className="text-blue-600" size={28} /> Labels</h1>
       <div className="grid gap-6 md:grid-cols-3 justify-start">
         <Card>
           <CardHeader className="flex flex-row gap-3 items-center">

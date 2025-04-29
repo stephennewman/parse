@@ -298,8 +298,15 @@ export default function SensorsPage() {
 
   return (
     <div className="space-y-8">
+      <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+        <ol className="list-reset flex">
+          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><span className="mx-2">/</span></li>
+          <li className="text-gray-700">Sensors</li>
+        </ol>
+      </nav>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Sensor Status</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2 mb-4"><Rss className="text-blue-600" size={28} /> Sensors</h1>
         <div className="flex gap-2 items-center">
           <Select value={type} onValueChange={setType}>
             <SelectTrigger className="w-[140px]">

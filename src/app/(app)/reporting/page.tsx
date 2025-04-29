@@ -2,6 +2,7 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { FileText } from 'lucide-react';
 
 const report = {
   site: "Boston Site A - Kitchen",
@@ -58,7 +59,15 @@ const report = {
 
 export default function ReportingPage() {
   return (
-    <div className="max-w-3xl mx-auto py-10">
+    <div>
+      <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+        <ol className="list-reset flex">
+          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><span className="mx-2">/</span></li>
+          <li className="text-gray-700">Reporting</li>
+        </ol>
+      </nav>
+      <h1 className="text-2xl font-bold flex items-center gap-2 mb-4"><FileText className="text-blue-600" size={28} /> Reporting</h1>
       <Card className="p-8">
         <h1 className="text-2xl font-bold mb-2">HACCP Food Safety Report</h1>
         <div className="mb-6 text-gray-600">Daily Cold Storage HACCP Log</div>

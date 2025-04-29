@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText } from 'lucide-react'; // Import icons
+import { Loader2, FileText, ListChecks } from 'lucide-react'; // Import icons
 
 interface Submission {
   id: string;
@@ -72,7 +72,14 @@ export default function AllSubmissionsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-sm font-semibold mb-4">Submissions</h1>
+      <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+        <ol className="list-reset flex">
+          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><span className="mx-2">/</span></li>
+          <li className="text-gray-700">Submissions</li>
+        </ol>
+      </nav>
+      <h1 className="text-2xl font-bold flex items-center gap-2 mb-4"><ListChecks className="text-blue-600" size={28} /> Submissions</h1>
 
       {loading && (
         <div className="flex justify-center items-center py-10">

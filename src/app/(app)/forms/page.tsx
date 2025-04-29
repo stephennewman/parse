@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 import { toast } from "sonner"; // Import toast
 import { Trash2 } from 'lucide-react'; // Import Trash icon
 import { useRouter } from 'next/navigation'; // Import useRouter
+import { LayoutGrid } from 'lucide-react';
 // import type { Database } from '@/lib/database.types'; // If you have types
 
 // Define a type for the form template structure (based on your schema)
@@ -144,12 +145,17 @@ export default function FormsPage() {
 
   return (
     <div className="space-y-4">
-      {/* --- Add Breadcrumbs --- */}
-      <Breadcrumbs items={breadcrumbItems} />
+      <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+        <ol className="list-reset flex">
+          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><span className="mx-2">/</span></li>
+          <li className="text-gray-700">Forms</li>
+        </ol>
+      </nav>
 
       {/* Adjust the flex container: add justify-between, remove space-x-3 */}
       <div className="flex justify-between items-baseline"> {/* Changed classes */}
-        <h1 className="text-2xl font-semibold">My Forms</h1>
+        <h1 className="text-2xl font-semibold flex items-center gap-2 mb-4"><LayoutGrid className="text-blue-600" size={28} /> Forms</h1>
 
         <div className="flex items-center space-x-2"> {/* Container for buttons */}
           {/* Delete Selected Button */}
