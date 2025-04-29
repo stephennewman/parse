@@ -419,7 +419,10 @@ export default function SensorsPage() {
               <div>
                 <div className="text-md font-semibold">{dtSensor.event_value.sensor_name || dtSensor.sensor_id}</div>
                 <div className="text-sm text-gray-700">
-                  {dtSensor.event_type}: {extractTemperature(dtSensor) !== null ? `${cToF(extractTemperature(dtSensor))}°F` : '—'}
+                  {dtSensor.event_type}: {(() => {
+                    const tempC = extractTemperature(dtSensor);
+                    return typeof tempC === 'number' ? `${cToF(tempC)}°F` : '—';
+                  })()}
                 </div>
                 <div className="text-xs text-gray-500 mb-2">{new Date(dtSensor.event_timestamp).toLocaleString()}</div>
                 {/* Trend Chart */}
