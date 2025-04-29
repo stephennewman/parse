@@ -74,7 +74,7 @@ export default function AllSubmissionsPage() {
     <div className="space-y-6">
       <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
         <ol className="list-reset flex">
-          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><Link href="/" className="hover:underline">Home</Link></li>
           <li><span className="mx-2">/</span></li>
           <li className="text-gray-700">Submissions</li>
         </ol>

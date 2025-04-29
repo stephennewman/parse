@@ -3,6 +3,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText } from 'lucide-react';
+import Link from "next/link";
 
 const report = {
   site: "Boston Site A - Kitchen",
@@ -62,7 +63,7 @@ export default function ReportingPage() {
     <div>
       <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
         <ol className="list-reset flex">
-          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><Link href="/" className="hover:underline">Home</Link></li>
           <li><span className="mx-2">/</span></li>
           <li className="text-gray-700">Reporting</li>
         </ol>
