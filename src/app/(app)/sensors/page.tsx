@@ -235,6 +235,42 @@ function extractTemperature(ev: any): number | null {
   }
 }
 
+// Helper to format event values for display
+function formatEventValue(val: any, type: string): string {
+  if (val == null) return '—';
+  if (typeof val === 'string' || typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    if (type === 'networkStatus') {
+      // Show key fields for networkStatus
+      const { rssi, signalStrength, transmissionMode } = val;
+      return [
+        rssi !== undefined ? `RSSI: ${rssi}` : null,
+        signalStrength !== undefined ? `Signal: ${signalStrength}` : null,
+        transmissionMode !== undefined ? `Mode: ${transmissionMode}` : null,
+      ].filter(Boolean).join(', ') || JSON.stringify(val);
+    }
+    if (type === 'connectionStatus') {
+      // Show key fields for connectionStatus
+      const { status, updateTime } = val;
+      return [
+        status !== undefined ? `Status: ${status}` : null,
+        updateTime !== undefined ? `Updated: ${updateTime}` : null,
+      ].filter(Boolean).join(', ') || JSON.stringify(val);
+    }
+    if (type === 'touch') {
+      // Show key fields for touch
+      const { touched, updateTime } = val;
+      return [
+        touched !== undefined ? `Touched: ${touched}` : null,
+        updateTime !== undefined ? `Updated: ${updateTime}` : null,
+      ].filter(Boolean).join(', ') || JSON.stringify(val);
+    }
+    // Fallback: stringify
+    return JSON.stringify(val);
+  }
+  return '—';
+}
+
 export default function SensorsPage() {
   const [type, setType] = useState('all');
   const [status, setStatus] = useState('all');
@@ -461,21 +497,21 @@ export default function SensorsPage() {
                 </div>
                 {/* Network Status */}
                 <div className="text-sm text-gray-700">
-                  Network: {dtEvents.networkStatus?.event_value?.networkStatus ?? '—'}
+                  Network: {formatEventValue(dtEvents.networkStatus?.event_value?.networkStatus, 'networkStatus')}
                   {dtEvents.networkStatus ? (
                     <span className="ml-2 text-xs text-gray-400">{new Date(dtEvents.networkStatus.event_timestamp).toLocaleString()}</span>
                   ) : null}
                 </div>
                 {/* Touch */}
                 <div className="text-sm text-gray-700">
-                  Touch: {dtEvents.touch?.event_value?.touch ?? '—'}
+                  Touch: {formatEventValue(dtEvents.touch?.event_value?.touch, 'touch')}
                   {dtEvents.touch ? (
                     <span className="ml-2 text-xs text-gray-400">{new Date(dtEvents.touch.event_timestamp).toLocaleString()}</span>
                   ) : null}
                 </div>
                 {/* Connection Status */}
                 <div className="text-sm text-gray-700">
-                  Connection: {dtEvents.connectionStatus?.event_value?.connectionStatus ?? '—'}
+                  Connection: {formatEventValue(dtEvents.connectionStatus?.event_value?.connectionStatus, 'connectionStatus')}
                   {dtEvents.connectionStatus ? (
                     <span className="ml-2 text-xs text-gray-400">{new Date(dtEvents.connectionStatus.event_timestamp).toLocaleString()}</span>
                   ) : null}
