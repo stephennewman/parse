@@ -15,6 +15,7 @@ import {
 } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
+import Image from 'next/image';
 // We need the Database type if we want type safety with Supabase
 // import type { Database } from '@/lib/database.types'; // Assuming you create this file later
 
@@ -42,7 +43,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <Image
+        src="https://www.checkit.net/hubfs/website/img/brand/checkit-logo-horizontal-standard-rgb-blue.svg"
+        alt="Checkit Logo"
+        width={220}
+        height={64}
+        className="mb-8"
+        priority
+      />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>

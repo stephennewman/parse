@@ -16,6 +16,7 @@ import {
 } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
+import Image from 'next/image';
 // import type { Database } from '@/lib/database.types';
 
 export default function SignupPage() {
@@ -49,7 +50,15 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <Image
+        src="https://www.checkit.net/hubfs/website/img/brand/checkit-logo-horizontal-standard-rgb-blue.svg"
+        alt="Checkit Logo"
+        width={220}
+        height={64}
+        className="mb-8"
+        priority
+      />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Sign Up</CardTitle>

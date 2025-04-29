@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Gauge, LayoutGrid, ListChecks, Database, Tag, Rss } from 'lucide-react';
+import { Gauge, LayoutGrid, ListChecks, Database, Tag, Rss, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -98,6 +98,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <NavItem href="/sensors">
                     <Rss className="h-5 w-5" />
                     Sensors
+                  </NavItem>
+                </li>
+                <li>
+                  <NavItem href="/reporting">
+                    <FileText className="h-5 w-5" />
+                    Reporting
                   </NavItem>
                 </li>
                 {/* Add more navigation links here */}
