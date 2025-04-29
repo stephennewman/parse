@@ -17,6 +17,7 @@ export function Sidebar() {
     { href: '/submissions', label: 'Submissions', icon: FileText }, // Example existing link
     // {{ Add the new Data link here }}
     { href: '/data', label: 'Form Fields', icon: Database },
+    { href: '/sensors', label: 'Sensors', icon: Database }, // Added Sensors link
   ];
 
   return (

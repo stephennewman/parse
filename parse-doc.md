@@ -1,5 +1,19 @@
 # Parse Project Documentation
 
+**[2024-09-01] Dashboard Visual Overhaul & Build Compliance**
+
+- **Modern Visual Dashboard:**
+    - Replaced the old dashboard with a visually engaging layout.
+    - Added stat cards for labels printed this week, unique food items labeled, and compliance rate.
+    - Integrated a bar chart for labels printed per day (last 7 days) and a compliance donut/pie chart.
+    - Added a recent activity table showing the latest label prints with compliance badges.
+    - Uses a mix of real and demo data to ensure the dashboard always displays interesting visuals, even if the database is empty.
+- **Chart Library Integration:**
+    - Uses `recharts` for charts, loaded via dynamic `import()` inside a `useEffect` to comply with Next.js/ESLint rules and Vercel build requirements.
+    - Removed all `require()` and `@ts-ignore` usages to resolve build errors.
+- **Build & Linting:**
+    - Dashboard now passes all ESLint and TypeScript checks and builds cleanly on Vercel.
+
 **[2024-08-29] Labels & Food Labeling System Enhancements**
 
 - **Labels Section Overhaul:**
