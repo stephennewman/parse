@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Rss, Thermometer, BatteryFull, BatteryLow, BatteryMedium, BatteryWarning, Clock, ArrowUp, ArrowDown, Search } from 'lucide-react';
 import { Area } from 'recharts';
 import Link from 'next/link';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import dynamic from 'next/dynamic';
 
 // Mock sensor data
 const mockSensors = [
@@ -221,6 +223,18 @@ function generateLogs(sensor: typeof mockSensors[number]) {
   return logs;
 }
 
+// Helper to extract temperature value from event_value
+function extractTemperature(ev: any): number | null {
+  try {
+    const tempObj = typeof ev.event_value?.temperature === 'string'
+      ? JSON.parse(ev.event_value.temperature)
+      : ev.event_value?.temperature;
+    return typeof tempObj?.value === 'number' ? tempObj.value : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function SensorsPage() {
   const [type, setType] = useState('all');
   const [status, setStatus] = useState('all');
@@ -229,9 +243,12 @@ export default function SensorsPage() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [dtSensor, setDtSensor] = useState<any>(null);
+  const [dtLoading, setDtLoading] = useState(true);
+  const [dtTrend, setDtTrend] = useState<any[]>([]);
 
   useEffect(() => {
-    if (view === 'trends') {
+    if (view === 'trends' || true) { // Always load for DT card
       (async () => {
         const recharts = await import('recharts');
         setChartComponents({
@@ -241,11 +258,42 @@ export default function SensorsPage() {
           YAxis: recharts.YAxis,
           Tooltip: recharts.Tooltip,
           ResponsiveContainer: recharts.ResponsiveContainer,
-          Area: recharts.Area,
         });
       })();
     }
   }, [view]);
+
+  useEffect(() => {
+    const supabase = createClientComponentClient();
+    async function fetchLatestDT() {
+      setDtLoading(true);
+      // Fetch latest event for summary
+      const { data: latest, error: err1 } = await supabase
+        .from('sensor_events')
+        .select('*')
+        .order('event_timestamp', { ascending: false })
+        .limit(1);
+      if (!err1 && latest && latest.length > 0) {
+        setDtSensor(latest[0]);
+      } else {
+        setDtSensor(null);
+      }
+      // Fetch last 24 events for trend
+      const { data: trend, error: err2 } = await supabase
+        .from('sensor_events')
+        .select('*')
+        .order('event_timestamp', { ascending: false })
+        .limit(24);
+      if (!err2 && trend && trend.length > 0) {
+        // Reverse for chronological order
+        setDtTrend(trend.reverse());
+      } else {
+        setDtTrend([]);
+      }
+      setDtLoading(false);
+    }
+    fetchLatestDT();
+  }, []);
 
   // Filtering
   let filtered = mockSensors.filter(sensor => {
@@ -359,6 +407,55 @@ export default function SensorsPage() {
           </div>
         </div>
       </div>
+      {/* DT Sensor Card */}
+      <Card className="border-blue-500 border-2 mb-4">
+        <div className="flex items-center gap-4 p-4">
+          <Rss className="text-blue-600" size={32} />
+          <div className="flex-1">
+            <div className="font-bold text-lg">DT Sensor</div>
+            {dtLoading ? (
+              <div className="text-gray-500 text-sm">Loading latest event...</div>
+            ) : dtSensor ? (
+              <div>
+                <div className="text-md font-semibold">{dtSensor.event_value.sensor_name || dtSensor.sensor_id}</div>
+                <div className="text-sm text-gray-700">
+                  {dtSensor.event_type}: {extractTemperature(dtSensor) !== null ? `${cToF(extractTemperature(dtSensor))}°F` : '—'}
+                </div>
+                <div className="text-xs text-gray-500 mb-2">{new Date(dtSensor.event_timestamp).toLocaleString()}</div>
+                {/* Trend Chart */}
+                {chartComponents.LineChart && dtTrend.length > 1 && dtTrend.some(e => extractTemperature(e) !== null) ? (
+                  <div className="h-32">
+                    <chartComponents.ResponsiveContainer width="100%" height="100%">
+                      <chartComponents.LineChart data={dtTrend} margin={{ left: 0, right: 0, top: 8, bottom: 8 }}>
+                        <chartComponents.XAxis dataKey="event_timestamp" tickFormatter={(t: string) => new Date(t).toLocaleTimeString()} hide={false} fontSize={10} />
+                        <chartComponents.YAxis domain={['auto', 'auto']} fontSize={10} />
+                        <chartComponents.Tooltip
+                          formatter={(v: number | null | undefined) => (v !== null && v !== undefined ? `${v}°F` : '—')}
+                          labelFormatter={(l: string) => new Date(l).toLocaleString()}
+                        />
+                        <chartComponents.Line
+                          type="monotone"
+                          dataKey={(e: any) => {
+                            const temp = extractTemperature(e);
+                            return temp !== null ? cToF(temp) : null;
+                          }}
+                          stroke="#2563eb"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </chartComponents.LineChart>
+                    </chartComponents.ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-400 mt-2">No trend data available.</div>
+                )}
+              </div>
+            ) : (
+              <div className="text-gray-500 text-sm">No DT sensor events found.</div>
+            )}
+          </div>
+        </div>
+      </Card>
       {view === 'table' ? (
         <Card>
           <Table>
@@ -469,7 +566,10 @@ export default function SensorsPage() {
                           dot={false}
                           activeDot={false}
                         />
-                        <Tooltip formatter={(v: number) => `${v}°F`} labelFormatter={() => ''} />
+                        <Tooltip
+                          formatter={(v: number | null | undefined) => (v !== null && v !== undefined ? `${v}°F` : '—')}
+                          labelFormatter={(l: string) => new Date(l).toLocaleString()}
+                        />
                         <Line type="monotone" dataKey="v" stroke={trendColor} strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
