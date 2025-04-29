@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Database } from 'lucide-react';
+import Link from 'next/link';
 
 // Define an interface for the shape of your form field data
 // Adjust properties based on your actual 'form_fields' table columns
@@ -79,7 +80,7 @@ export default function DataPage() {
     <div className="space-y-6">
       <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
         <ol className="list-reset flex">
-          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><Link href="/" className="hover:underline">Home</Link></li>
           <li><span className="mx-2">/</span></li>
           <li className="text-gray-700">Form Fields</li>
         </ol>
