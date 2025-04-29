@@ -345,6 +345,11 @@ export default function SensorsPage() {
     }
   };
 
+  const dtTrendFiltered = dtTrend.filter(e => {
+    const temp = extractTemperature(e);
+    return typeof temp === 'number' && !isNaN(temp);
+  });
+
   return (
     <div className="space-y-8">
       <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
@@ -426,10 +431,10 @@ export default function SensorsPage() {
                 </div>
                 <div className="text-xs text-gray-500 mb-2">{new Date(dtSensor.event_timestamp).toLocaleString()}</div>
                 {/* Trend Chart */}
-                {chartComponents.LineChart && dtTrend.length > 1 && dtTrend.some(e => extractTemperature(e) !== null) ? (
+                {chartComponents.LineChart && dtTrendFiltered.length > 1 ? (
                   <div className="h-32">
                     <chartComponents.ResponsiveContainer width="100%" height="100%">
-                      <chartComponents.LineChart data={dtTrend} margin={{ left: 0, right: 0, top: 8, bottom: 8 }}>
+                      <chartComponents.LineChart data={dtTrendFiltered} margin={{ left: 0, right: 0, top: 8, bottom: 8 }}>
                         <chartComponents.XAxis dataKey="event_timestamp" tickFormatter={(t: string) => new Date(t).toLocaleTimeString()} hide={false} fontSize={10} />
                         <chartComponents.YAxis domain={['auto', 'auto']} fontSize={10} />
                         <chartComponents.Tooltip

@@ -23,21 +23,31 @@ export async function POST(request: NextRequest) {
     }
     console.log('DT Webhook received (prod):', { headers, event });
 
+    // Normalize DT payload structure
+    let normalized = event;
+    if (event?.event?.event && event?.event?.labels && event?.event?.metadata) {
+      normalized = {
+        event: event.event.event,
+        labels: event.event.labels,
+        metadata: event.event.metadata,
+      };
+    }
+
     // Optionally verify DT signature (if configured)
     if (DT_SIGNATURE_SECRET) {
       const signature = request.headers.get('x-dt-signature');
       // TODO: Implement signature verification logic here
     }
 
-    // Extract fields from real DT Cloud payload
-    const sensor_id = event?.metadata?.deviceId || null;
-    const event_type = event?.event?.eventType || null;
-    const event_value = { ...event?.event?.data };
+    // Extract fields from normalized DT Cloud payload
+    const sensor_id = normalized?.metadata?.deviceId || null;
+    const event_type = normalized?.event?.eventType || null;
+    const event_value = { ...normalized?.event?.data };
     // Optionally add sensor_name to event_value
-    if (event?.labels?.name) {
-      event_value.sensor_name = event.labels.name;
+    if (normalized?.labels?.name) {
+      event_value.sensor_name = normalized.labels.name;
     }
-    const event_timestamp = event?.event?.timestamp || new Date().toISOString();
+    const event_timestamp = normalized?.event?.timestamp || new Date().toISOString();
 
     if (!sensor_id || !event_type || !event_timestamp) {
       console.error('Missing required event fields:', { sensor_id, event_type, event_timestamp });
@@ -50,7 +60,7 @@ export async function POST(request: NextRequest) {
       event_type,
       event_value,
       event_timestamp,
-      raw_payload: event,
+      raw_payload: normalized,
       // form_submission_id, user_id: can be added if mapping is needed
     });
 
