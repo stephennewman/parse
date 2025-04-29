@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to parse JSON body:', e);
       event = null;
     }
-    console.log('DT Webhook received (relaxed):', { headers, event });
+    console.log('DT Webhook received (prod):', { headers, event });
 
     // Optionally verify DT signature (if configured)
     if (DT_SIGNATURE_SECRET) {
@@ -29,9 +29,37 @@ export async function POST(request: NextRequest) {
       // TODO: Implement signature verification logic here
     }
 
-    // Temporarily skip validation and DB insert for debugging
-    // Just return 200 OK and log the payload
-    return NextResponse.json({ success: true, debug: { headers, event } });
+    // Extract fields from real DT Cloud payload
+    const sensor_id = event?.metadata?.deviceId || null;
+    const event_type = event?.event?.eventType || null;
+    const event_value = { ...event?.event?.data };
+    // Optionally add sensor_name to event_value
+    if (event?.labels?.name) {
+      event_value.sensor_name = event.labels.name;
+    }
+    const event_timestamp = event?.event?.timestamp || new Date().toISOString();
+
+    if (!sensor_id || !event_type || !event_timestamp) {
+      console.error('Missing required event fields:', { sensor_id, event_type, event_timestamp });
+      return NextResponse.json({ error: 'Missing required event fields.' }, { status: 400 });
+    }
+
+    // Insert into Supabase
+    const { error } = await supabase.from('sensor_events').insert({
+      sensor_id,
+      event_type,
+      event_value,
+      event_timestamp,
+      raw_payload: event,
+      // form_submission_id, user_id: can be added if mapping is needed
+    });
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      return NextResponse.json({ error: 'Failed to store event.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DT Webhook error:', err);
     return NextResponse.json({ error: 'Invalid request or server error.' }, { status: 500 });
