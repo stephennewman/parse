@@ -246,6 +246,7 @@ export default function SensorsPage() {
   const [dtSensor, setDtSensor] = useState<any>(null);
   const [dtLoading, setDtLoading] = useState(true);
   const [dtTrend, setDtTrend] = useState<any[]>([]);
+  const [dtEvents, setDtEvents] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (view === 'trends' || true) { // Always load for DT card
@@ -285,11 +286,25 @@ export default function SensorsPage() {
         .order('event_timestamp', { ascending: false })
         .limit(24);
       if (!err2 && trend && trend.length > 0) {
-        // Reverse for chronological order
         setDtTrend(trend.reverse());
       } else {
         setDtTrend([]);
       }
+      // Fetch latest event for each type
+      const eventTypes = ['temperature', 'batteryStatus', 'networkStatus', 'touch', 'connectionStatus'];
+      const events: Record<string, any> = {};
+      for (const type of eventTypes) {
+        const { data, error } = await supabase
+          .from('sensor_events')
+          .select('*')
+          .eq('event_type', type)
+          .order('event_timestamp', { ascending: false })
+          .limit(1);
+        if (!error && data && data.length > 0) {
+          events[type] = data[0];
+        }
+      }
+      setDtEvents(events);
       setDtLoading(false);
     }
     fetchLatestDT();
@@ -420,19 +435,54 @@ export default function SensorsPage() {
             <div className="font-bold text-lg">DT Sensor</div>
             {dtLoading ? (
               <div className="text-gray-500 text-sm">Loading latest event...</div>
-            ) : dtSensor ? (
+            ) : (
               <div>
-                <div className="text-md font-semibold">{dtSensor.event_value.sensor_name || dtSensor.sensor_id}</div>
+                {/* Sensor Name */}
+                <div className="text-md font-semibold">{dtEvents.temperature?.event_value.sensor_name || dtEvents.batteryStatus?.event_value.sensor_name || dtSensor?.event_value.sensor_name || dtSensor?.sensor_id}</div>
+                {/* Temperature */}
                 <div className="text-sm text-gray-700">
-                  {dtSensor.event_type}: {(() => {
-                    const tempC = extractTemperature(dtSensor);
+                  Temperature: {(() => {
+                    const tempC = extractTemperature(dtEvents.temperature);
                     return typeof tempC === 'number' ? `${cToF(tempC)}°F` : '—';
                   })()}
+                  {dtEvents.temperature ? (
+                    <span className="ml-2 text-xs text-gray-400">{new Date(dtEvents.temperature.event_timestamp).toLocaleString()}</span>
+                  ) : null}
                 </div>
-                <div className="text-xs text-gray-500 mb-2">{new Date(dtSensor.event_timestamp).toLocaleString()}</div>
+                {/* Battery Status */}
+                <div className="text-sm text-gray-700">
+                  Battery: {(() => {
+                    const bat = dtEvents.batteryStatus?.event_value?.batteryStatus?.percentage;
+                    return typeof bat === 'number' ? `${bat}%` : '—';
+                  })()}
+                  {dtEvents.batteryStatus ? (
+                    <span className="ml-2 text-xs text-gray-400">{new Date(dtEvents.batteryStatus.event_timestamp).toLocaleString()}</span>
+                  ) : null}
+                </div>
+                {/* Network Status */}
+                <div className="text-sm text-gray-700">
+                  Network: {dtEvents.networkStatus?.event_value?.networkStatus ?? '—'}
+                  {dtEvents.networkStatus ? (
+                    <span className="ml-2 text-xs text-gray-400">{new Date(dtEvents.networkStatus.event_timestamp).toLocaleString()}</span>
+                  ) : null}
+                </div>
+                {/* Touch */}
+                <div className="text-sm text-gray-700">
+                  Touch: {dtEvents.touch?.event_value?.touch ?? '—'}
+                  {dtEvents.touch ? (
+                    <span className="ml-2 text-xs text-gray-400">{new Date(dtEvents.touch.event_timestamp).toLocaleString()}</span>
+                  ) : null}
+                </div>
+                {/* Connection Status */}
+                <div className="text-sm text-gray-700">
+                  Connection: {dtEvents.connectionStatus?.event_value?.connectionStatus ?? '—'}
+                  {dtEvents.connectionStatus ? (
+                    <span className="ml-2 text-xs text-gray-400">{new Date(dtEvents.connectionStatus.event_timestamp).toLocaleString()}</span>
+                  ) : null}
+                </div>
                 {/* Trend Chart */}
                 {chartComponents.LineChart && dtTrendFiltered.length > 1 ? (
-                  <div className="h-32">
+                  <div className="h-32 mt-2">
                     <chartComponents.ResponsiveContainer width="100%" height="100%">
                       <chartComponents.LineChart data={dtTrendFiltered} margin={{ left: 0, right: 0, top: 8, bottom: 8 }}>
                         <chartComponents.XAxis dataKey="event_timestamp" tickFormatter={(t: string) => new Date(t).toLocaleTimeString()} hide={false} fontSize={10} />
@@ -458,8 +508,6 @@ export default function SensorsPage() {
                   <div className="text-xs text-gray-400 mt-2">No trend data available.</div>
                 )}
               </div>
-            ) : (
-              <div className="text-gray-500 text-sm">No DT sensor events found.</div>
             )}
           </div>
         </div>
