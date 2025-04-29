@@ -1,5 +1,31 @@
 # Parse Project Documentation
 
+**[2024-06-10] UI/UX Consistency & Navigation Overhaul**
+
+- **Sidebar & Page Headline Icon Consistency:**
+    - Every main page now displays the same icon as its sidebar link, next to the page headline (e.g., Home uses Gauge, Forms uses LayoutGrid, etc.).
+    - All page headlines use a large, bold style with the icon to the left for visual clarity.
+- **Breadcrumbs:**
+    - Breadcrumb navigation has been added to all main pages (Home, Forms, Submissions, Labels, Form Fields, Sensors, Reporting) for improved user orientation.
+- **Sidebar & Navigation:**
+    - Sidebar "Dashboard" renamed to "Home" for clarity and consistency.
+    - All sidebar links and page headlines are now in sync.
+    - Main sections and their icons:
+        - Home: Gauge
+        - Forms: LayoutGrid
+        - Submissions: ListChecks
+        - Labels: Tag
+        - Form Fields: Database
+        - Sensors: Rss
+        - Reporting: FileText
+- **Reporting Section:**
+    - New "Reporting" section added, with a sample HACCP food safety report and clear headline/icon.
+- **Login/Signup Branding:**
+    - Checkit logo added to the top of both login and signup pages for consistent branding.
+- **Codebase Cleanup:**
+    - Removed unused dialog/modal code and fixed related build/lint errors.
+    - All pages now pass lint and build checks.
+
 **[2024-09-01] Dashboard Visual Overhaul & Build Compliance**
 
 - **Modern Visual Dashboard:**
