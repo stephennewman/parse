@@ -160,7 +160,7 @@ function cToF(c: number) {
 // Generate mock trend data for each sensor (in F for trends view)
 function generateTrendData(sensor: typeof mockSensors[number]) {
   let base = sensor.temperature ?? 0;
-  let arr = [];
+  const arr = [];
   for (let i = 0; i < 12; i++) {
     base += (Math.random() - 0.5) * 1.5;
     arr.push({ t: i, v: cToF(base) });
