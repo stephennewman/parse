@@ -314,15 +314,32 @@ export default function NewFormPage() {
     return false;
   };
 
-  // Reset state on mount (always)
+  // Reset state on mount (always) and on route change to /forms/new
   useEffect(() => {
-    setFields(PREPOPULATED_FIELDS);
-    setFormTitle("Culinary Manager - AM Daily Walk-thru Checklist");
-    setFormDescription("");
-    setFieldOptionsText({});
-    setFieldRatingValues({});
-    initialMount.current = false;
-    setIsDirty(false);
+    const resetFormState = () => {
+      setFields(PREPOPULATED_FIELDS);
+      setFormTitle("Culinary Manager - AM Daily Walk-thru Checklist");
+      setFormDescription("");
+      setFieldOptionsText({});
+      setFieldRatingValues({});
+      initialMount.current = false;
+      setIsDirty(false);
+    };
+    resetFormState();
+    // Listen for route changes
+    const handleRouteChange = () => {
+      if (window.location.pathname === "/forms/new") {
+        resetFormState();
+      }
+    };
+    window.addEventListener("popstate", handleRouteChange);
+    window.addEventListener("pushstate", handleRouteChange);
+    window.addEventListener("replacestate", handleRouteChange);
+    return () => {
+      window.removeEventListener("popstate", handleRouteChange);
+      window.removeEventListener("pushstate", handleRouteChange);
+      window.removeEventListener("replacestate", handleRouteChange);
+    };
   }, []);
 
   // Track dirty state
