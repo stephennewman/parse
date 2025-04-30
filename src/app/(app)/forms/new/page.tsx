@@ -2,7 +2,7 @@
 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -110,6 +110,8 @@ export default function NewFormPage() {
   const [fieldRatingValues, setFieldRatingValues] = useState<Record<string, { min?: string; max?: string }>>({});
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const initialMount = useRef(true);
+  const [isDirty, setIsDirty] = useState(false);
 
   const supabase = createClientComponentClient();
 
@@ -294,13 +296,81 @@ export default function NewFormPage() {
     });
   };
 
+  // Helper to compare current state to initial state
+  const isFormDirty = () => {
+    if (formTitle !== "" || formDescription !== "") return true;
+    if (fields.length !== PREPOPULATED_FIELDS.length) return true;
+    for (let i = 0; i < fields.length; i++) {
+      if (
+        fields[i].fieldName !== PREPOPULATED_FIELDS[i].fieldName ||
+        fields[i].fieldType !== PREPOPULATED_FIELDS[i].fieldType
+      ) {
+        return true;
+      }
+    }
+    // Check options and rating values
+    if (Object.keys(fieldOptionsText).length > 0) return true;
+    if (Object.keys(fieldRatingValues).length > 0) return true;
+    return false;
+  };
+
+  // Reset state on mount (always)
   useEffect(() => {
-    if (fields.length === 0) {
-      setFields(PREPOPULATED_FIELDS);
-      setFormTitle("Culinary Manager - AM Daily Walk-thru Checklist");
+    setFields(PREPOPULATED_FIELDS);
+    setFormTitle("Culinary Manager - AM Daily Walk-thru Checklist");
+    setFormDescription("");
+    setFieldOptionsText({});
+    setFieldRatingValues({});
+    initialMount.current = false;
+    setIsDirty(false);
+  }, []);
+
+  // Track dirty state
+  useEffect(() => {
+    if (!initialMount.current) {
+      setIsDirty(isFormDirty());
     }
     // eslint-disable-next-line
-  }, []);
+  }, [formTitle, formDescription, fields, fieldOptionsText, fieldRatingValues]);
+
+  // Prompt on unsaved changes (browser/tab close)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
+
+  // Prompt on in-app navigation
+  useEffect(() => {
+    const handleRouteChange = (url: string) => {
+      if (isDirty && !window.confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
+        // Prevent navigation
+        router.push("/forms/new");
+        throw "Route change aborted due to unsaved changes.";
+      }
+    };
+    // Next.js app router does not expose router.events, so we use beforePopState for browser back/forward
+    if (typeof window !== "undefined") {
+      const handler = (event: PopStateEvent) => {
+        if (isDirty && !window.confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
+          event.preventDefault();
+          window.history.pushState(null, "", window.location.pathname);
+        }
+      };
+      window.addEventListener("popstate", handler);
+      return () => {
+        window.removeEventListener("popstate", handler);
+      };
+    }
+  }, [isDirty, router]);
 
   // --- Define breadcrumb items for this page ---
   const breadcrumbItems = [
