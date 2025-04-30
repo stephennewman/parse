@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { toast } from "sonner";
-import { ChevronRight, Database as DatabaseIcon } from 'lucide-react';
+import { ChevronRight, Database as DatabaseIcon, MoreVertical } from 'lucide-react';
 
 const SEED_ITEMS = [
   // Breakfast
@@ -83,6 +83,12 @@ export default function FoodDatabasePage() {
   const [items, setItems] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
   const [draft, setDraft] = useState<any>({ name: "", storage: "Refrigerated", defaultShelfLifeDays: 3, allergens: "", category: "" });
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>("asc");
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [filterStorage, setFilterStorage] = useState<string>("");
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
 
   // Easter egg: reset database
   const handleEasterEgg = () => {
@@ -136,6 +142,56 @@ export default function FoodDatabasePage() {
     toast.success("Food item deleted");
   };
 
+  // CSV Import
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const rows = text.split(/\r?\n/).filter(Boolean);
+      if (!rows.length) return toast.error("CSV is empty");
+      const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
+      const newItems = rows.slice(1).map(row => {
+        const cols = row.split(",");
+        const obj: any = { id: genId() };
+        headers.forEach((h, i) => {
+          obj[h] = cols[i]?.trim() || "";
+        });
+        // Normalize fields
+        obj.defaultShelfLifeDays = Number(obj.defaultshelflifedays) || 3;
+        obj.storage = obj.storage || "Refrigerated";
+        obj.name = obj.name || "";
+        obj.allergens = obj.allergens || "";
+        obj.category = obj.category || "";
+        return obj;
+      }).filter(i => i.name && i.category);
+      setItems(prev => [...prev, ...newItems]);
+      toast.success(`${newItems.length} food items imported`);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  // Filtering, searching, sorting
+  const filtered = items.filter(item => {
+    if (search && !item.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterCategory && item.category !== filterCategory) return false;
+    if (filterStorage && item.storage !== filterStorage) return false;
+    return true;
+  });
+  const sorted = [...filtered].sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  const categories = Array.from(new Set(items.map(i => i.category))).filter(Boolean);
+  const storages = Array.from(new Set(items.map(i => i.storage))).filter(Boolean);
+
   return (
     <div className="space-y-4">
       <nav className="flex items-center text-sm text-muted-foreground mb-2 select-none">
@@ -151,13 +207,37 @@ export default function FoodDatabasePage() {
         </span>
         <span>Food Database</span>
       </nav>
-      <div className="mb-4 flex justify-between items-center">
+      <div className="mb-4 flex flex-wrap gap-2 justify-between items-center">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <DatabaseIcon className="text-blue-600" /> Food Database
         </h1>
-        <Button asChild>
-          <a href="/labels/foods/add">+ Add Food Item</a>
-        </Button>
+        <div className="flex gap-2 items-center">
+          <Button asChild>
+            <a href="/labels/foods/add">+ Add Food Item</a>
+          </Button>
+          <label className="inline-block cursor-pointer">
+            <span className="sr-only">Import CSV</span>
+            <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
+            <Button variant="outline">Import CSV</Button>
+          </label>
+          <Button variant="secondary" disabled>Integrate (coming soon)</Button>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2 mb-2 items-center">
+        <Input
+          placeholder="Search food..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-48"
+        />
+        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="border rounded px-2 py-1">
+          <option value="">All Categories</option>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={filterStorage} onChange={e => setFilterStorage(e.target.value)} className="border rounded px-2 py-1">
+          <option value="">All Storage</option>
+          {storages.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
       </div>
       <Card>
         <CardHeader>
@@ -167,17 +247,24 @@ export default function FoodDatabasePage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2 px-3">Name</th>
-                <th className="text-left py-2 px-3">Storage</th>
-                <th className="text-left py-2 px-3">Shelf Life (days)</th>
-                <th className="text-left py-2 px-3">Allergens</th>
-                <th className="text-left py-2 px-3">Category</th>
-                <th className="text-left py-2 px-3">Reheat Only Once</th>
+                {['name','storage','defaultShelfLifeDays','allergens','category','reheatOnlyOnce'].map(col => (
+                  <th
+                    key={col}
+                    className="text-left py-2 px-3 cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                      else { setSortBy(col); setSortDir('asc'); }
+                    }}
+                  >
+                    {col === 'defaultShelfLifeDays' ? 'Shelf Life (days)' : col.charAt(0).toUpperCase() + col.slice(1)}
+                    {sortBy === col && (sortDir === 'asc' ? ' ▲' : ' ▼')}
+                  </th>
+                ))}
                 <th className="text-left py-2 px-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {items.map(item => (
+              {sorted.map(item => (
                 <tr key={item.id} className="border-b hover:bg-gray-50">
                   <td className="py-2 px-3">{item.name}</td>
                   <td className="py-2 px-3">{item.storage}</td>
@@ -185,9 +272,20 @@ export default function FoodDatabasePage() {
                   <td className="py-2 px-3">{item.allergens}</td>
                   <td className="py-2 px-3">{item.category}</td>
                   <td className="py-2 px-3">{item.reheatOnlyOnce ? 'Yes' : 'No'}</td>
-                  <td className="py-2 px-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>Edit</Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleDelete(item.id)}>Delete</Button>
+                  <td className="py-2 px-3 relative">
+                    <button
+                      className="p-1 rounded hover:bg-gray-200"
+                      onClick={() => setActionMenuOpen(actionMenuOpen === item.id ? null : item.id)}
+                      aria-label="Actions"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    {actionMenuOpen === item.id && (
+                      <div className="absolute z-10 right-0 mt-2 w-32 bg-white border rounded shadow-lg">
+                        <button className="block w-full text-left px-4 py-2 hover:bg-gray-100" onClick={() => { setEditing(item); setActionMenuOpen(null); }}>Edit</button>
+                        <button className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600" onClick={() => { handleDelete(item.id); setActionMenuOpen(null); }}>Delete</button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
