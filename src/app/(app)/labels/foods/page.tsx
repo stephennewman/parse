@@ -142,37 +142,6 @@ export default function FoodDatabasePage() {
     toast.success("Food item deleted");
   };
 
-  // CSV Import
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const rows = text.split(/\r?\n/).filter(Boolean);
-      if (!rows.length) return toast.error("CSV is empty");
-      const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
-      const newItems = rows.slice(1).map(row => {
-        const cols = row.split(",");
-        const obj: any = { id: genId() };
-        headers.forEach((h, i) => {
-          obj[h] = cols[i]?.trim() || "";
-        });
-        // Normalize fields
-        obj.defaultShelfLifeDays = Number(obj.defaultshelflifedays) || 3;
-        obj.storage = obj.storage || "Refrigerated";
-        obj.name = obj.name || "";
-        obj.allergens = obj.allergens || "";
-        obj.category = obj.category || "";
-        return obj;
-      }).filter(i => i.name && i.category);
-      setItems(prev => [...prev, ...newItems]);
-      toast.success(`${newItems.length} food items imported`);
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
-
   // Filtering, searching, sorting
   const filtered = items.filter(item => {
     if (search && !item.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -215,11 +184,6 @@ export default function FoodDatabasePage() {
           <Button asChild>
             <a href="/labels/foods/add">+ Add Food Item</a>
           </Button>
-          <label className="inline-block cursor-pointer">
-            <span className="sr-only">Import CSV</span>
-            <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
-            <Button variant="outline">Import CSV</Button>
-          </label>
           <Button variant="secondary" disabled>Integrate (coming soon)</Button>
         </div>
       </div>
