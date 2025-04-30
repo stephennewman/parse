@@ -1,4 +1,4 @@
-# Parse Project Documentation
+# Parse Project Documentation (ignore these dates as they are often incorrect)
 
 **[2024-06-10] UI/UX Consistency & Navigation Overhaul**
 
