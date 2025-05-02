@@ -274,7 +274,7 @@ function formatEventValue(val: any, type: string): string {
 export default function SensorsPage() {
   const [type, setType] = useState('all');
   const [status, setStatus] = useState('all');
-  const [view, setView] = useState<'table' | 'trends'>('table');
+  const [view, setView] = useState<'table' | 'trends'>('trends');
   const [chartComponents, setChartComponents] = useState<any>({});
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');

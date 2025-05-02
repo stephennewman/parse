@@ -20,6 +20,17 @@ import { useRouter, useParams } from "next/navigation"; // Added useParams
 import React from "react";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { toast } from "sonner";
+import {
+  Type,
+  Hash,
+  Calendar,
+  AlignLeft,
+  CheckSquare,
+  List,
+  Dot,
+  ListChecks,
+  Star,
+} from 'lucide-react';
 
 // Interface for field state (matches NewFormPage)
 interface FormFieldState {
@@ -74,7 +85,7 @@ function generateInternalKey(label: string): string {
 export default function EditFormPage() {
   const params = useParams();
   const router = useRouter();
-  const formId = params.id as string; // Get ID from URL
+  const formId = (params?.id ?? "") as string; // Get ID from URL, fallback to empty string if undefined
 
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
@@ -418,151 +429,275 @@ export default function EditFormPage() {
   if (error) return <div className="text-red-500">Error loading form: {error}</div>;
 
   return (
-    <div className="w-full max-w-2xl space-y-4">
-      <Breadcrumbs items={breadcrumbItems} />
-      <h1 className="text-2xl font-semibold">Edit Form: {formTitle || ''}</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit Form Template</CardTitle>
-          <CardDescription>
-            Modify the title, description, and fields for this form template.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Title Input */}
-          <div className="space-y-2">
-            <Label htmlFor="form-title">Form Title</Label>
-            <Input
-              id="form-title"
-              placeholder="e.g., Customer Intake"
-              value={formTitle}
-              onChange={(e) => setFormTitle(e.target.value)}
-            />
-          </div>
-          {/* Description Textarea */}
-          <div className="space-y-2">
-            <Label htmlFor="form-description">Description (Optional)</Label>
-            <Textarea
-              id="form-description"
-              placeholder="e.g., Collects basic contact and inquiry details."
-              value={formDescription}
-              onChange={(e) => setFormDescription(e.target.value)}
-            />
-          </div>
-
-          <Separator />
-
-          {/* Dynamic Fields Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Form Fields</h3>
-            <div className="space-y-4">
-              {fields.length === 0 ? (
-                <div className="border border-dashed border-gray-300 rounded-md min-h-[100px] flex items-center justify-center text-sm text-gray-500">
-                  Add fields using the button below.
-                </div>
-              ) : (
-                fields.map((field, index) => (
-                  <React.Fragment key={field.clientId}>
-                    <div className="flex items-end space-x-2">
-                      <div className="flex-grow space-y-2">
-                        <Label htmlFor={`field-name-${field.clientId}`}>Field Name #{index + 1}</Label>
-                        <Input
-                          id={`field-name-${field.clientId}`}
-                          placeholder="e.g., Full Name"
-                          value={field.fieldName}
-                          onChange={(e) => handleFieldChange(field.clientId, 'fieldName', e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`field-type-${field.clientId}`}>Type</Label>
-                        <Select
-                          value={field.fieldType}
-                          onValueChange={(value) => handleFieldChange(field.clientId, 'fieldType', value)}
-                        >
-                          <SelectTrigger id={`field-type-${field.clientId}`} className="w-[120px]">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {FIELD_TYPES.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type.charAt(0).toUpperCase() + type.slice(1)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveField(field.clientId)}
-                        aria-label="Remove field"
-                        className="cursor-pointer"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Conditionally render Options Textarea for 'select', 'radio', OR 'multicheckbox' */}
-                    {(field.fieldType === 'select' || field.fieldType === 'radio' || field.fieldType === 'multicheckbox') && (
-                      <div className="space-y-2 pl-2 pt-2"> {/* Indent slightly */}
-                        <Label htmlFor={`field-options-${field.clientId}`}>Options (one per line)</Label>
-                        <Textarea
-                          id={`field-options-${field.clientId}`}
-                          placeholder="Option 1\nOption 2\nOption 3"
-                          value={fieldOptionsText[field.clientId] || ''}
-                          onChange={(e) => handleOptionsTextChange(field.clientId, e.target.value)}
-                          rows={3}
-                        />
-                      </div>
-                    )}
-                    {/* <<< Conditionally render Rating Min/Max Inputs >>> */}
-                    {field.fieldType === 'rating' && (
-                      <div className="flex items-center space-x-2 pl-2 pt-2">
-                        <div className="space-y-1 w-1/2">
-                          <Label htmlFor={`field-rating-min-${field.clientId}`}>Min Value</Label>
-                          <Input
-                            id={`field-rating-min-${field.clientId}`}
-                            type="number"
-                            placeholder="e.g., 1"
-                            value={fieldRatingValues[field.clientId]?.min || ''}
-                            onChange={(e) => handleRatingChange(field.clientId, 'min', e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1 w-1/2">
-                          <Label htmlFor={`field-rating-max-${field.clientId}`}>Max Value</Label>
-                          <Input
-                            id={`field-rating-max-${field.clientId}`}
-                            type="number"
-                            placeholder="e.g., 5"
-                            value={fieldRatingValues[field.clientId]?.max || ''}
-                            onChange={(e) => handleRatingChange(field.clientId, 'max', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </React.Fragment>
-                ))
-              )}
+    <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8">
+      {/* Left: Form Builder */}
+      <div className="flex-1 space-y-4">
+        <Breadcrumbs items={breadcrumbItems} />
+        <h1 className="text-2xl font-semibold">Edit Form: {formTitle || ''}</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit Form Template</CardTitle>
+            <CardDescription>
+              Modify the title, description, and fields for this form template.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Title Input */}
+            <div className="space-y-2">
+              <Label htmlFor="form-title">Form Title</Label>
+              <Input
+                id="form-title"
+                placeholder="e.g., Customer Intake"
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
+              />
             </div>
+            {/* Description Textarea */}
+            <div className="space-y-2">
+              <Label htmlFor="form-description">Description (Optional)</Label>
+              <Textarea
+                id="form-description"
+                placeholder="e.g., Collects basic contact and inquiry details."
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Dynamic Fields Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Form Fields</h3>
+              <div className="space-y-4">
+                {fields.length === 0 ? (
+                  <div className="border border-dashed border-gray-300 rounded-md min-h-[100px] flex items-center justify-center text-sm text-gray-500">
+                    Add fields using the button below.
+                  </div>
+                ) : (
+                  fields.map((field, index) => (
+                    <React.Fragment key={field.clientId}>
+                      <div className="flex items-end gap-4 p-4 border rounded-md bg-gray-50">
+                        <div className="flex-grow space-y-2">
+                          <Label htmlFor={`field-name-${field.clientId}`}>Field Name #{index + 1}</Label>
+                          <Input
+                            id={`field-name-${field.clientId}`}
+                            placeholder="e.g., Full Name"
+                            value={field.fieldName}
+                            onChange={(e) => handleFieldChange(field.clientId, 'fieldName', e.target.value)}
+                          />
+                          <div className="flex gap-2 mt-2">
+                            {[
+                              { type: 'text', icon: Type, label: 'Text' },
+                              { type: 'number', icon: Hash, label: 'Number' },
+                              { type: 'date', icon: Calendar, label: 'Date' },
+                              { type: 'textarea', icon: AlignLeft, label: 'Textarea' },
+                              { type: 'checkbox', icon: CheckSquare, label: 'Checkbox' },
+                              { type: 'select', icon: List, label: 'Select' },
+                              { type: 'radio', icon: Dot, label: 'Radio' },
+                              { type: 'multicheckbox', icon: ListChecks, label: 'Multicheckbox' },
+                              { type: 'rating', icon: Star, label: 'Rating' },
+                            ].map(({ type, icon: Icon, label }) => (
+                              <button
+                                key={type}
+                                type="button"
+                                aria-label={label}
+                                title={label}
+                                onClick={() => handleFieldChange(field.clientId, 'fieldType', type)}
+                                className={`p-1 rounded border ${field.fieldType === type ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'} hover:bg-blue-50 transition`}
+                              >
+                                <Icon className={`w-5 h-5 ${field.fieldType === type ? 'text-blue-600' : 'text-gray-500'}`} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveField(field.clientId)}
+                          aria-label="Remove field"
+                          className="text-red-500 hover:text-red-700 cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* Conditionally render Options Textarea for 'select', 'radio', OR 'multicheckbox' */}
+                      {(field.fieldType === 'select' || field.fieldType === 'radio' || field.fieldType === 'multicheckbox') && (
+                        <div className="space-y-2 pl-2 pt-2">
+                          <Label htmlFor={`field-options-${field.clientId}`}>Options (one per line)</Label>
+                          <Textarea
+                            id={`field-options-${field.clientId}`}
+                            placeholder="Option 1\nOption 2\nOption 3"
+                            value={fieldOptionsText[field.clientId] || ''}
+                            onChange={(e) => handleOptionsTextChange(field.clientId, e.target.value)}
+                            rows={3}
+                          />
+                        </div>
+                      )}
+                      {/* Conditionally render Rating Min/Max Inputs */}
+                      {field.fieldType === 'rating' && (
+                        <div className="flex items-center space-x-2 pl-2 pt-2">
+                          <div className="space-y-1 w-1/2">
+                            <Label htmlFor={`field-rating-min-${field.clientId}`}>Min Value</Label>
+                            <Input
+                              id={`field-rating-min-${field.clientId}`}
+                              type="number"
+                              placeholder="e.g., 1"
+                              value={fieldRatingValues[field.clientId]?.min || ''}
+                              onChange={(e) => handleRatingChange(field.clientId, 'min', e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1 w-1/2">
+                            <Label htmlFor={`field-rating-max-${field.clientId}`}>Max Value</Label>
+                            <Input
+                              id={`field-rating-max-${field.clientId}`}
+                              type="number"
+                              placeholder="e.g., 5"
+                              value={fieldRatingValues[field.clientId]?.max || ''}
+                              onChange={(e) => handleRatingChange(field.clientId, 'max', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleAddField}
+                className="cursor-pointer"
+              >
+                Add Field
+              </Button>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-end">
             <Button 
-              variant="outline" 
-              onClick={handleAddField}
+              onClick={handleUpdateTemplate} 
+              disabled={isUpdating || loading}
               className="cursor-pointer"
             >
-              Add Field
+              {isUpdating ? "Updating..." : "Update Template"}
             </Button>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button 
-            onClick={handleUpdateTemplate} 
-            disabled={isUpdating || loading}
-            className="cursor-pointer"
-          >
-            {isUpdating ? "Updating..." : "Update Template"}
-          </Button>
-        </CardFooter>
-      </Card>
+          </CardFooter>
+        </Card>
+      </div>
+      {/* Right: Live Preview */}
+      <div className="flex-1 min-w-[320px] md:sticky md:top-8 md:max-h-screen md:overflow-auto">
+        <Card className="bg-gray-50 border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-lg">Live Preview</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h2 className="text-xl font-semibold mb-1">{formTitle || <span className="text-gray-400">Form Title</span>}</h2>
+              <p className="text-gray-500 mb-4">{formDescription || <span className="text-gray-300">Form description...</span>}</p>
+            </div>
+            <form className="space-y-4">
+              {fields.length === 0 ? (
+                <div className="text-gray-400 italic">No fields yet. Add fields to preview the form.</div>
+              ) : (
+                fields.map((field) => {
+                  switch (field.fieldType) {
+                    case 'text':
+                      return (
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Text Field'}</Label>
+                          <Input disabled placeholder="Text input" />
+                        </div>
+                      );
+                    case 'number':
+                      return (
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Number Field'}</Label>
+                          <Input type="number" disabled placeholder="Number input" />
+                        </div>
+                      );
+                    case 'date':
+                      return (
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Date Field'}</Label>
+                          <Input type="date" disabled />
+                        </div>
+                      );
+                    case 'textarea':
+                      return (
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Textarea'}</Label>
+                          <Textarea disabled placeholder="Textarea" />
+                        </div>
+                      );
+                    case 'checkbox':
+                      return (
+                        <div key={field.clientId} className="flex items-center gap-2">
+                          <input type="checkbox" disabled />
+                          <Label>{field.fieldName || 'Checkbox'}</Label>
+                        </div>
+                      );
+                    case 'select':
+                      return (
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Select'}</Label>
+                          <select disabled className="border rounded px-2 py-1 w-full">
+                            {(fieldOptionsText[field.clientId]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
+                              <option key={idx}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    case 'radio':
+                      return (
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Radio'}</Label>
+                          <div className="flex gap-4 mt-1">
+                            {(fieldOptionsText[field.clientId]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
+                              <label key={idx} className="flex items-center gap-1">
+                                <input type="radio" disabled name={field.clientId} /> {opt}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    case 'multicheckbox':
+                      return (
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Multicheckbox'}</Label>
+                          <div className="flex gap-4 mt-1">
+                            {(fieldOptionsText[field.clientId]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
+                              <label key={idx} className="flex items-center gap-1">
+                                <input type="checkbox" disabled /> {opt}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    case 'rating':
+                      return (
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Rating'}</Label>
+                          <div className="flex gap-1 mt-1">
+                            {(() => {
+                              const min = parseInt(fieldRatingValues[field.clientId]?.min || '1', 10);
+                              const max = parseInt(fieldRatingValues[field.clientId]?.max || '5', 10);
+                              const stars = [];
+                              for (let i = min; i <= max; i++) {
+                                stars.push(<Star key={i} className="w-5 h-5 text-yellow-400" fill="currentColor" />);
+                              }
+                              return stars;
+                            })()}
+                          </div>
+                        </div>
+                      );
+                    default:
+                      return null;
+                  }
+                })
+              )}
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 } 

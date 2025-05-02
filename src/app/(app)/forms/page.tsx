@@ -18,6 +18,7 @@ import { toast } from "sonner"; // Import toast
 import { Trash2 } from 'lucide-react'; // Import Trash icon
 import { useRouter } from 'next/navigation'; // Import useRouter
 import { LayoutGrid } from 'lucide-react';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 // import type { Database } from '@/lib/database.types'; // If you have types
 
 // Define a type for the form template structure (based on your schema)
@@ -165,7 +166,7 @@ export default function FormsPage() {
                size="sm"
                onClick={handleBulkDelete}
                disabled={isDeleting || selectedFormIds.size === 0}
-               className="bg-red-600 hover:bg-red-700 text-white" // Example styling
+               className="bg-red-600 hover:bg-red-700 text-white"
              >
                <Trash2 className="mr-2 h-4 w-4" />
                {isDeleting ? 'Deleting...' : `Delete Selected (${selectedFormIds.size})`}
@@ -177,9 +178,6 @@ export default function FormsPage() {
             <Button asChild>
               <Link href="/forms/new">Create New Form</Link>
             </Button>
-            {/* <Button variant="outline" asChild>
-              <Link href="/forms/from-pdf">Create from PDF</Link>
-            </Button> */}
           </div>
         </div>
       </div>
