@@ -23,9 +23,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Slider } from "@/components/ui/slider";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-// Note: Tabs were commented out in original page due to build issues
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 // --- Types & Enums (Consider moving to shared files) ---
 interface FormTemplate {
@@ -129,8 +127,13 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   // Add entry mode state for public forms
   const [entryMode, setEntryMode] = useState<'manual' | 'voice'>(isPublic ? 'manual' : 'voice');
   // Manual form state for public mode
-  const [manualResponses, setManualResponses] = useState<Record<string, string>>( {} );
+  const [manualResponses, setManualResponses] = useState<Record<string, string | string[] | number>>({});
   const [manualSubmitting, setManualSubmitting] = useState(false);
+  // Tab state for review phase
+  const [reviewTab, setReviewTab] = useState<'review' | 'transcription'>('review');
+  const [transcriptionEdit, setTranscriptionEdit] = useState<string>('');
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
   // --- Refs ---
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -200,6 +203,13 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
     }
     return () => { if (intervalId) clearInterval(intervalId); };
   }, [processingState]);
+
+  // Keep transcriptionEdit in sync when entering review phase
+  useEffect(() => {
+    if (currentPhase === CapturePhase.Reviewing && transcription) {
+      setTranscriptionEdit(transcription);
+    }
+  }, [currentPhase, transcription]);
 
   // --- Handlers & Logic (Copied from original page) ---
 
@@ -428,6 +438,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `Parsing HTTP error! status: ${response.status}`);
         setParsedResults(result.parsedData || {});
+        setTranscription(currentTranscription);
         setProcessingState(ProcessingState.Success);
         toast.success("Processing complete! Review and save.");
         setCurrentPhase(CapturePhase.Reviewing);
@@ -528,7 +539,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
     }
   };
 
-  const handleManualChange = (field: FormField, value: string) => {
+  const handleManualChange = (field: FormField, value: string | number | string[]) => {
     setManualResponses((prev) => ({ ...prev, [field.internal_key]: value }));
   };
 
@@ -576,6 +587,186 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
 
   // --- Show select all if there are 2+ checkbox fields ---
   const checkboxFields = fields.filter(field => field.field_type === 'checkbox');
+
+  // --- Add this helper for manual mode field rendering ---
+  const handleManualMultiCheckboxChange = (internal_key: string, option: string, isChecked: boolean) => {
+    setManualResponses((prev) => {
+      const currentSelection = Array.isArray(prev[internal_key]) ? (prev[internal_key] as string[]) : [];
+      let newSelection = isChecked
+        ? [...currentSelection, option]
+        : currentSelection.filter((item) => item !== option);
+      // Prevent duplicates
+      if (isChecked && currentSelection.includes(option)) newSelection = currentSelection;
+      return { ...prev, [internal_key]: newSelection };
+    });
+  };
+
+  const renderManualFieldInput = (field: FormField) => {
+    const value = manualResponses[field.internal_key] ?? '';
+    switch (field.field_type) {
+      case 'textarea':
+        return (
+          <Textarea
+            id={field.internal_key}
+            value={String(value)}
+            onChange={(e) => handleManualChange(field, e.target.value)}
+            rows={3}
+          />
+        );
+      case 'number':
+        return (
+          <Input
+            type="number"
+            id={field.internal_key}
+            value={value}
+            onChange={(e) => {
+              const val = e.target.value;
+              handleManualChange(field, val === '' ? '' : Number(val));
+            }}
+          />
+        );
+      case 'date': {
+        let dateValue: string = '';
+        if (typeof value === 'string') dateValue = value;
+        // ignore number/array for date
+        return (
+          <Input
+            type="date"
+            id={field.internal_key}
+            value={dateValue}
+            onChange={(e) => handleManualChange(field, e.target.value)}
+          />
+        );
+      }
+      case 'checkbox':
+        return (
+          <RadioGroup
+            value={typeof value === 'string' ? value : typeof value === 'number' ? String(value) : ''}
+            onValueChange={(val) => handleManualChange(field, val)}
+            className="flex gap-8"
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="yes" id={`${field.id}-yes`} />
+              <label htmlFor={`${field.id}-yes`} className="mr-4 text-base">Yes</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="no" id={`${field.id}-no`} />
+              <label htmlFor={`${field.id}-no`} className="text-base">No</label>
+            </div>
+          </RadioGroup>
+        );
+      case 'select': {
+        let selectValue: string = '';
+        if (typeof value === 'string') selectValue = value;
+        else if (typeof value === 'number') selectValue = String(value);
+        // ignore array case for select
+        return (
+          <Select
+            value={selectValue}
+            onValueChange={(selectedValue) => handleManualChange(field, selectedValue)}
+          >
+            <SelectTrigger id={field.internal_key}>
+              <SelectValue placeholder={`Select ${field.label}...`} />
+            </SelectTrigger>
+            <SelectContent>
+              {(field.options || []).map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      }
+      case 'radio':
+        return (
+          <RadioGroup
+            id={field.internal_key}
+            value={String(value)}
+            onValueChange={(selectedValue: string) => handleManualChange(field, selectedValue)}
+            className="pt-2"
+          >
+            {(field.options || []).map((option) => (
+              <div key={option} className="flex items-center space-x-2">
+                <RadioGroupItem value={option} id={`${field.internal_key}-${option}`} />
+                <Label htmlFor={`${field.internal_key}-${option}`} className="font-normal">
+                  {option}
+                </Label>
+              </div>
+            ))}
+            {(field.options || []).length === 0 && (
+              <p className="text-sm text-red-500 italic">No options defined.</p>
+            )}
+          </RadioGroup>
+        );
+      case 'multicheckbox': {
+        const selectedValues = Array.isArray(value) ? value : [];
+        return (
+          <div className="pt-2 space-y-2">
+            {(field.options || []).map((option) => (
+              <div key={option} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`${field.internal_key}-${option}`}
+                  checked={selectedValues.includes(option)}
+                  onCheckedChange={(checked) =>
+                    handleManualMultiCheckboxChange(field.internal_key, option, checked as boolean)
+                  }
+                />
+                <Label htmlFor={`${field.internal_key}-${option}`} className="font-normal">
+                  {option}
+                </Label>
+              </div>
+            ))}
+            {(field.options || []).length === 0 && (
+              <p className="text-sm text-red-500 italic">No options defined.</p>
+            )}
+          </div>
+        );
+      }
+      case 'rating': {
+        const minValue = field.rating_min ?? 1;
+        const maxValue = field.rating_max ?? 5;
+        let currentRating = minValue;
+        const parsedValue = value;
+        if (typeof parsedValue === 'number' && parsedValue >= minValue && parsedValue <= maxValue)
+          currentRating = parsedValue;
+        else if (typeof parsedValue === 'number') currentRating = minValue;
+        if (minValue >= maxValue)
+          return <p className="text-sm text-red-500 italic">Invalid rating scale configured.</p>;
+        const displayRating = currentRating;
+        return (
+          <div className="flex items-center space-x-4 pt-2">
+            <Slider
+              id={field.internal_key}
+              min={minValue}
+              max={maxValue}
+              step={1}
+              value={[typeof value === 'number' ? value : minValue]}
+              onValueChange={(newValue: number[]) =>
+                handleManualChange(field, newValue[0])
+              }
+            />
+            <span className="font-medium min-w-[30px] text-right">{typeof value === 'number' ? value : minValue}</span>
+          </div>
+        );
+      }
+      default: {
+        // Handles 'text' and fallback
+        let textValue: string = '';
+        if (typeof value === 'string') textValue = value;
+        else if (typeof value === 'number') textValue = String(value);
+        // ignore array for text
+        return (
+          <Input
+            type="text"
+            id={field.internal_key}
+            value={textValue}
+            onChange={(e) => handleManualChange(field, e.target.value)}
+          />
+        );
+      }
+    }
+  };
 
   // --- Render Helpers (Copied from original page) ---
   const renderFieldHints = (field: FormField) => {
@@ -642,12 +833,53 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
          const displayRating = currentRating;
           return (
               <div className="flex items-center space-x-4 pt-2">
-                  <Slider id={field.internal_key} min={minValue} max={maxValue} step={1} value={[displayRating]} onValueChange={(newValue: number[]) => handleFieldChange(field.internal_key, newValue[0])} disabled={isDisabled} />
-                  <span className="font-medium min-w-[30px] text-right">{displayRating}</span>
+                  <Slider id={field.internal_key} min={minValue} max={maxValue} step={1} value={[typeof value === 'number' ? value : minValue]} onValueChange={(newValue: number[]) => handleFieldChange(field.internal_key, newValue[0])} disabled={isDisabled} />
+                  <span className="font-medium min-w-[30px] text-right">{typeof value === 'number' ? value : minValue}</span>
               </div>
           );
        default: // Handles 'text'
         return <Input type="text" id={field.internal_key} value={String(value)} onChange={(e) => handleFieldChange(field.internal_key, e.target.value)} disabled={isDisabled} />;
+    }
+  };
+
+  // Regenerate handler
+  const handleRegenerate = async () => {
+    if (!transcriptionEdit.trim()) return;
+    setRegenerating(true);
+    setRegenerateError(null);
+    try {
+      setProcessingState(ProcessingState.Parsing);
+      // Call parse API with edited transcription
+      const response = await fetch('/api/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcription: transcriptionEdit,
+          fields: fields.map(f => ({
+            label: f.label,
+            internal_key: f.internal_key,
+            field_type: f.field_type,
+            options: (f.field_type === 'select' || f.field_type === 'radio' || f.field_type === 'multicheckbox') ? f.options : undefined,
+            rating_min: f.field_type === 'rating' ? f.rating_min : undefined,
+            rating_max: f.field_type === 'rating' ? f.rating_max : undefined,
+          })),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `Parsing HTTP error! status: ${response.status}`);
+      setParsedResults(result.parsedData || {});
+      setTranscription(transcriptionEdit); // update main transcription
+      setReviewTab('review');
+      setProcessingState(ProcessingState.Success);
+      toast.success('Parsing complete! Review updated fields.');
+    } catch (err) {
+      let message = 'Failed to parse transcription.';
+      if (err instanceof Error) message = err.message;
+      setRegenerateError(message);
+      setProcessingState(ProcessingState.ErrorParsing);
+      toast.error(message);
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -706,39 +938,13 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
             )}
             <form className="space-y-6" onSubmit={handleManualSubmit}>
               {fields.map((field) => (
-                <div key={field.id} className="p-4 bg-gray-50 rounded-lg border mb-4 flex items-center justify-between gap-4">
+                <div
+                  key={field.id}
+                  className="p-4 bg-gray-50 rounded-lg border mb-4 flex items-center justify-between gap-4"
+                >
                   <label className="block font-medium text-lg flex-1 pr-4">{field.label}</label>
-                  <div className="flex-shrink-0">
-                    {field.field_type === 'checkbox' ? (
-                      <RadioGroup
-                        value={manualResponses[field.internal_key] || ''}
-                        onValueChange={(val) => handleManualChange(field, val)}
-                        className="flex gap-8"
-                      >
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="yes" id={`${field.id}-yes`} />
-                          <label htmlFor={`${field.id}-yes`} className="mr-4 text-base">Yes</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="no" id={`${field.id}-no`} />
-                          <label htmlFor={`${field.id}-no`} className="text-base">No</label>
-                        </div>
-                      </RadioGroup>
-                    ) : field.field_type === 'text' && /date/i.test(field.label) ? (
-                      <Input
-                        type="date"
-                        value={manualResponses[field.internal_key] || ''}
-                        onChange={(e) => handleManualChange(field, e.target.value)}
-                        className="min-w-[180px]"
-                      />
-                    ) : field.field_type === 'text' ? (
-                      <Input
-                        type="text"
-                        value={manualResponses[field.internal_key] || ''}
-                        onChange={(e) => handleManualChange(field, e.target.value)}
-                        className="min-w-[180px]"
-                      />
-                    ) : null}
+                  <div className="flex-shrink-0 min-w-[180px]">
+                    {renderManualFieldInput(field)}
                   </div>
                 </div>
               ))}
@@ -775,49 +981,100 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
               </div>
           )}
           {currentPhase === CapturePhase.Reviewing && (
-              <div className="space-y-4 p-4 border rounded-md bg-green-50">
-                  <h2 className="text-lg font-medium">Review & Edit</h2>
-                  <p>Please review the extracted information and make any necessary corrections before saving.</p>
-                   {transcription && (
-                       <div className="mt-2">
-                           <Label htmlFor="final-transcription" className="block text-sm font-medium text-gray-700 mb-1">Final Transcription:</Label>
-                           <Textarea id="final-transcription" readOnly value={transcription} rows={3} className="w-full bg-white text-sm" />
-                       </div>
-                   )}
-                   <div className="space-y-4 pt-4 border-t mt-4">
-                       {fields.length > 0 ? ( fields.map(field => (<div key={field.id}><Label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700 mb-1">{field.label}</Label>{renderFieldInput(field)}</div>)) ) : ( <p>No fields defined.</p> )}
-                   </div>
-                   {processingError && <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>}
+              <div className="space-y-4 p-4 border rounded-md bg-green-50" style={{ minHeight: 500 }}>
+                  <Tabs value={reviewTab} onValueChange={v => setReviewTab(v as 'review' | 'transcription')}>
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="review">Review & Edit</TabsTrigger>
+                      <TabsTrigger value="transcription">Transcription</TabsTrigger>
+                    </TabsList>
+                    <div style={{ minHeight: 400 }}>
+                      <TabsContent value="review">
+                        <div className="pt-2">
+                          <h2 className="text-lg font-medium mb-2">Review & Edit</h2>
+                          <p className="mb-4">Please review the extracted information and make any necessary corrections before saving.</p>
+                          <div className="space-y-4 border-t pt-4">
+                            {fields.length > 0 ? (
+                              fields.map(field => {
+                                const value = parsedResults[field.internal_key];
+                                const isEmpty =
+                                  value === undefined || value === null ||
+                                  (typeof value === 'string' && value.trim() === '') ||
+                                  (Array.isArray(value) && value.length === 0);
+                                return (
+                                  <div
+                                    key={field.id}
+                                    className={`p-3 rounded-md border mb-2 ${isEmpty ? 'border-red-500 bg-red-50' : 'border-gray-200'} flex flex-col gap-1`}
+                                  >
+                                    <Label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700 mb-1">
+                                      {field.label}
+                                    </Label>
+                                    {renderFieldInput(field)}
+                                    {isEmpty && (
+                                      <span className="text-xs text-red-600 mt-1">Not populated</span>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p>No fields defined.</p>
+                            )}
+                          </div>
+                          {processingError && <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>}
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="transcription">
+                        <div className="pt-2">
+                          <h2 className="text-lg font-medium mb-2">Transcription</h2>
+                          <p className="mb-4">Edit the transcription below and click Regenerate to update the parsed fields.</p>
+                          <Textarea
+                            id="editable-transcription"
+                            value={transcriptionEdit}
+                            onChange={e => setTranscriptionEdit(e.target.value)}
+                            rows={5}
+                            className="w-full bg-white text-sm mb-4"
+                            disabled={regenerating}
+                          />
+                          <Button onClick={handleRegenerate} disabled={regenerating || !transcriptionEdit.trim()}>
+                            {regenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            Regenerate
+                          </Button>
+                          {regenerateError && <p className="text-red-500 mt-2">{regenerateError}</p>}
+                        </div>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
               </div>
           )}
-           {currentPhase === CapturePhase.Error && processingError && (
-               <div className="space-y-4 p-4 border rounded-md bg-red-50">
-                   <h2 className="text-lg font-medium text-red-700">Error</h2>
-                   <p>{processingError}</p>
-                   {transcription && (<div className="mt-2"><Label htmlFor="error-transcription" className="block text-sm font-medium text-gray-700 mb-1">Transcription (if available):</Label><Textarea id="error-transcription" readOnly value={transcription} rows={3} className="w-full bg-white text-sm" /></div>)}
-               </div>
-           )}
 
-          {/* Bottom Controls */}
-          <div className="flex justify-center items-center space-x-4 p-4 border-t mt-4">
-              {(canStartRecording || canStopRecording) && (
-                <Button 
-                  onClick={handleRecordClick} 
-                  size="lg" 
-                  disabled={interactionDisabled || (currentPhase === CapturePhase.Prompting && recordingStatus === RecordingStatus.PermissionDenied)} 
-                  className={`cursor-pointer ${isRecording ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"} disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {isRequestingMic ? <Mic className="mr-2 h-5 w-5 animate-pulse" /> : isRecording ? <MicOff className="mr-2 h-5 w-5" /> : <Mic className="mr-2 h-5 w-5" />}
-                  {isRequestingMic ? "Requesting Mic..." : isRecording ? "Stop Recording" : (currentPhase === CapturePhase.Reviewing || currentPhase === CapturePhase.Error) ? "Record Again" : "Start Recording" }
-                </Button>
-              )}
-            {showSaveButton && (
-                 <Button onClick={handleSaveSubmission} size="lg" disabled={isSaving} className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-wait">
+          {/* Bottom Controls: Show in all phases except Submitting and Error. In Reviewing, only show if reviewTab is 'review' */}
+          {(currentPhase !== CapturePhase.Submitting && currentPhase !== CapturePhase.Error) &&
+            ((currentPhase !== CapturePhase.Reviewing || reviewTab === 'review') && (
+              <div className="flex justify-center items-center space-x-4 p-4 border-t mt-4">
+                {(canStartRecording || canStopRecording) && (
+                  <Button
+                    onClick={handleRecordClick}
+                    size="lg"
+                    disabled={interactionDisabled || (currentPhase === CapturePhase.Prompting && recordingStatus === RecordingStatus.PermissionDenied)}
+                    className={`cursor-pointer ${isRecording ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {isRequestingMic ? <Mic className="mr-2 h-5 w-5 animate-pulse" /> : isRecording ? <MicOff className="mr-2 h-5 w-5" /> : <Mic className="mr-2 h-5 w-5" />}
+                    {isRequestingMic
+                      ? "Requesting Mic..."
+                      : isRecording
+                        ? "Stop Recording"
+                        : currentPhase === CapturePhase.Reviewing
+                          ? "Record Again"
+                          : "Start Recording"}
+                  </Button>
+                )}
+                {showSaveButton && (
+                  <Button onClick={handleSaveSubmission} size="lg" disabled={isSaving} className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-wait">
                     {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
                     {isSaving ? 'Saving...' : (isPublic ? 'Submit Form' : 'Save Submission')}
-                </Button>
-            )}
-          </div>
+                  </Button>
+                )}
+              </div>
+            ))}
         </>
       )}
     </div>
