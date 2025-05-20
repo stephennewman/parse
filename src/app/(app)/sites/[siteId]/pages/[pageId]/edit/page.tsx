@@ -126,7 +126,7 @@ export default function PageEditor() {
   return (
     <div>
       <Breadcrumbs items={[
-        { label: 'Website', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: siteId, href: `/sites/${siteId}/edit` },
         { label: pageTitle },
       ]} />

@@ -130,7 +130,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   const [manualResponses, setManualResponses] = useState<Record<string, string | string[] | number>>({});
   const [manualSubmitting, setManualSubmitting] = useState(false);
   // Tab state for review phase
-  const [reviewTab, setReviewTab] = useState<'review' | 'transcription'>('review');
+  const [reviewTab, setReviewTab] = useState<'review' | 'transcription'>('transcription');
   const [transcriptionEdit, setTranscriptionEdit] = useState<string>('');
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
@@ -905,26 +905,26 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{template.name}</h1>
-
-      {/* --- Entry Mode Toggle for Public Forms --- */}
-      {isPublic && (entryMode === 'manual' || currentPhase === CapturePhase.Prompting) && (
-        <div className="mb-4 flex gap-2 items-center justify-center">
-          <span className="font-medium">Entry Mode:</span>
-          <Button
-            variant={entryMode === 'manual' ? 'default' : 'outline'}
-            onClick={() => setEntryMode('manual')}
-          >
-            Regular Input
-          </Button>
-          <Button
-            variant={entryMode === 'voice' ? 'default' : 'outline'}
-            onClick={() => setEntryMode('voice')}
-          >
-            Voice Input
-          </Button>
-        </div>
-      )}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-semibold">{template.name}</h1>
+        {/* Entry Mode Toggle for Public Forms - now top right */}
+        {isPublic && (entryMode === 'manual' || currentPhase === CapturePhase.Prompting) && (
+          <div className="flex gap-2 items-center">
+            <Button
+              variant={entryMode === 'manual' ? 'default' : 'outline'}
+              onClick={() => setEntryMode('manual')}
+            >
+              Regular Input
+            </Button>
+            <Button
+              variant={entryMode === 'voice' ? 'default' : 'outline'}
+              onClick={() => setEntryMode('voice')}
+            >
+              Voice Input
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* --- Manual Entry Form for Public Users --- */}
       {isPublic && entryMode === 'manual' ? (
@@ -1023,7 +1023,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
                         </div>
                       </TabsContent>
                       <TabsContent value="transcription">
-                        <div className="pt-2">
+                        <div className="pt-2 text-left">
                           <h2 className="text-lg font-medium mb-2">Transcription</h2>
                           <p className="mb-4">Edit the transcription below and click Regenerate to update the parsed fields.</p>
                           <Textarea

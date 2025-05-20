@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -7,7 +7,8 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, ListChecks } from 'lucide-react'; // Import icons
+import { Loader2, FileText, ListChecks } from 'lucide-react';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 interface Submission {
   id: string;
@@ -17,7 +18,6 @@ interface Submission {
   form_templates: {
     name: string;
   } | null;
-  // We won't display raw form_data here for brevity
 }
 
 export default function AllSubmissionsPage() {
@@ -38,8 +38,6 @@ export default function AllSubmissionsPage() {
             throw new Error("User not authenticated.");
         }
 
-        // Fetch all submissions for the logged-in user, joining with template name
-        // Specify form_templates relationship explicitly for single object return
         const { data, error: fetchError } = await supabase
           .from('form_submissions')
           .select(`
@@ -49,14 +47,9 @@ export default function AllSubmissionsPage() {
             user_id,
             form_templates!inner ( name )
           `)
-          // .eq('user_id', session.user.id) // Removed user_id filter
           .order('created_at', { ascending: false });
 
         if (fetchError) throw fetchError;
-
-        console.log("Raw submissions data from Supabase:", data);
-
-        // Directly set state, casting to the correct Submission type via unknown
         setSubmissions((data as unknown as Submission[]) || []);
       } catch (err) {
         console.error("Error fetching submissions:", err);
@@ -72,13 +65,11 @@ export default function AllSubmissionsPage() {
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
-        <ol className="list-reset flex">
-          <li><Link href="/" className="hover:underline">Home</Link></li>
-          <li><span className="mx-2">/</span></li>
-          <li className="text-gray-700">Submissions</li>
-        </ol>
-      </nav>
+      <Breadcrumbs items={[
+        { label: 'Home', href: '/' },
+        { label: 'Forms', href: '/forms' },
+        { label: 'Submissions' }
+      ]} />
       <h1 className="text-2xl font-bold flex items-center gap-2 mb-4"><ListChecks className="text-blue-600" size={28} /> Submissions</h1>
 
       {loading && (
@@ -116,7 +107,7 @@ export default function AllSubmissionsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/submissions/${submission.id}`}>
+                      <Link href={`/forms/submissions/${submission.id}`}>
                          <FileText className="h-4 w-4 mr-1" /> View
                       </Link>
                     </Button>

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Gauge, LayoutGrid, ListChecks, Database, Tag, Rss, FileText, Globe, ChevronDown } from 'lucide-react';
+import { Gauge, LayoutGrid, ListChecks, Database, Tag, Rss, FileText, Globe, ChevronDown, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -74,7 +74,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <li>
                   <NavItem href="/sites">
                     <Globe className="h-5 w-5" />
-                    Website
+                    Sites
                   </NavItem>
                 </li>
                 <FormsNav />
@@ -82,6 +82,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <NavItem href="/sensors">
                     <Rss className="h-5 w-5" />
                     Sensors
+                  </NavItem>
+                </li>
+                <li>
+                  <NavItem href="/labels">
+                    <Tag className="h-5 w-5" />
+                    Labels
                   </NavItem>
                 </li>
                 <li>
@@ -127,40 +133,42 @@ function FormsNav() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
   return (
     <li>
-      <button
-        className={cn(
-          "flex items-center w-full px-3 py-2 rounded-md text-sm font-medium gap-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900",
-          open ? "bg-gray-100" : ""
-        )}
-        onClick={() => setOpen(v => !v)}
-        aria-expanded={open}
-        aria-controls="forms-subnav"
-        type="button"
-      >
-        <LayoutGrid className="h-5 w-5" />
-        Forms
-        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", open ? "rotate-180" : "rotate-0")} />
-      </button>
+      <div className="flex items-center w-full">
+        <Link
+          href="/forms"
+          className={cn(
+            "flex items-center flex-1 px-3 py-2 rounded-md text-sm font-medium gap-2",
+            isActive("/forms") ? "bg-gray-200 text-gray-900" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          )}
+        >
+          <LayoutGrid className="h-5 w-5" />
+          Forms
+        </Link>
+        <button
+          className={cn(
+            "ml-1 p-1 rounded hover:bg-gray-100",
+            open ? "bg-gray-100" : ""
+          )}
+          onClick={() => setOpen(v => !v)}
+          aria-expanded={open}
+          aria-controls="forms-subnav"
+          type="button"
+        >
+          <ChevronDown className={cn("h-4 w-4 transition-transform", open ? "rotate-180" : "rotate-0")} />
+        </button>
+      </div>
       {open && (
         <ul id="forms-subnav" className="pl-8 py-1 space-y-1">
           <li>
-            <NavItem href="/forms">
-              <span className={isActive("/forms") ? "font-semibold" : ""}>Forms</span>
-            </NavItem>
-          </li>
-          <li>
-            <NavItem href="/submissions">
-              <span className={isActive("/submissions") ? "font-semibold" : ""}>Submissions</span>
+            <NavItem href="/forms/submissions">
+              <ListChecks className="h-5 w-5" />
+              Submissions
             </NavItem>
           </li>
           <li>
             <NavItem href="/data">
+              <List className="h-5 w-5" />
               <span className={isActive("/data") ? "font-semibold" : ""}>Form Fields</span>
-            </NavItem>
-          </li>
-          <li>
-            <NavItem href="/labels">
-              <span className={isActive("/labels") ? "font-semibold" : ""}>Labels</span>
             </NavItem>
           </li>
         </ul>

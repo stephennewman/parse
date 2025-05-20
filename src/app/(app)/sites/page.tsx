@@ -4,6 +4,7 @@ import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useRouter } from 'next/navigation';
+import { Globe } from 'lucide-react';
 
 const mockSites = [
   { id: '1', name: 'My First Site', subdomain: 'myfirstsite', published_at: '2024-09-01' },
@@ -16,10 +17,10 @@ export default function SitesPage() {
     <div>
       <Breadcrumbs items={[
         { label: 'Home', href: '/' },
-        { label: 'Website' }
+        { label: 'Sites' }
       ]} />
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Your Sites</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2"><Globe className="text-blue-600" size={28} /> Sites</h1>
         <Button onClick={() => router.push('/sites/new')} className="cursor-pointer">
           Create New Site
         </Button>

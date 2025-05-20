@@ -5,7 +5,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Database } from 'lucide-react';
+import { Loader2, Database, List } from 'lucide-react';
 import Link from 'next/link';
 
 // Define an interface for the shape of your form field data
@@ -85,7 +85,7 @@ export default function DataPage() {
           <li className="text-gray-700">Form Fields</li>
         </ol>
       </nav>
-      <h1 className="text-2xl font-bold flex items-center gap-2 mb-4"><Database className="text-blue-600" size={28} /> Form Fields</h1>
+      <h1 className="text-2xl font-bold flex items-center gap-2 mb-4"><List className="text-blue-600" size={28} /> Form Fields</h1>
 
       {loading && (
         <div className="flex justify-center items-center py-10">

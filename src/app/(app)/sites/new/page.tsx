@@ -32,7 +32,7 @@ export default function NewSitePage() {
     <div>
       <Breadcrumbs items={[
         { label: 'Home', href: '/' },
-        { label: 'Website', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: 'New Site' },
       ]} />
       <h1 className="text-2xl font-bold mb-4">Create New Site</h1>

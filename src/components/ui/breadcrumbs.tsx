@@ -19,9 +19,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
         {items.map((item, index) => (
           <li key={index} className="inline-flex items-center">
             {index > 0 && (
-              // Separator
-              <ChevronRight className="h-4 w-4 mx-1 text-gray-400" />
-              // Or use: <span className="mx-1">/</span>
+              <span className="mx-1">/</span>
             )}
             {item.href ? (
               <Link

@@ -91,7 +91,9 @@ export default function SubmissionDetailPage() {
     }, [submissionId, supabase]);
 
     const breadcrumbLinks = [
-        { label: "Submissions", href: "/submissions" },
+        { label: 'Home', href: '/' },
+        { label: 'Forms', href: '/forms' },
+        { label: 'Submissions', href: '/forms/submissions' },
         { label: "Details", isCurrent: true },
     ];
 

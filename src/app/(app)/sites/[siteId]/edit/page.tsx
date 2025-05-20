@@ -38,7 +38,7 @@ export default function SiteEditorPage() {
     <div>
       <Breadcrumbs items={[
         { label: 'Home', href: '/' },
-        { label: 'Website', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: mockSite.name },
       ]} />
       <h1 className="text-2xl font-bold mb-2">Edit Site: {mockSite.name}</h1>
