@@ -44,13 +44,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <Image
-        src="https://www.checkit.net/hubfs/website/img/brand/checkit-logo-horizontal-standard-rgb-blue.svg"
-        alt="Checkit Logo"
-        width={220}
-        height={64}
-        className="mb-8"
-        priority
+      <img
+        src="https://s3.ca-central-1.amazonaws.com/logojoy/logos/220875599/noBgColor.png?5663.5999999940395"
+        alt="Parse Logo"
+        className="h-16 w-auto mx-auto mb-6"
       />
       <Card className="w-full max-w-sm">
         <CardHeader>

@@ -7,8 +7,8 @@ import "./globals.css";
 import { cn } from "~/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Checkit",
-  description: "Capture structured data using voice with Checkit",
+  title: "Parse",
+  description: "Capture structured data using voice with Parse",
 };
 
 export default function RootLayout({
