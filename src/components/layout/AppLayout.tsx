@@ -1,10 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Gauge, LayoutGrid, ListChecks, Database, Tag, Rss, FileText } from 'lucide-react';
+import { Gauge, LayoutGrid, ListChecks, Database, Tag, Rss, FileText, Globe, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -50,13 +50,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Fixed Sidebar - Full height */}
       <aside className={`fixed top-0 left-0 ${sidebarWidth} h-full bg-white border-r border-gray-200 z-40 flex flex-col`}> {/* Removed pt-16 */}
         {/* Sidebar content container - takes full height */}
-        <div className="flex flex-col h-full p-4 pt-6"> {/* Added some top padding back for content */}
+        <div className="flex flex-col h-full p-4 pt-2"> {/* Reduced top padding to move logo up */}
           {/* App Title Area */}
-          <div className="mb-6 px-3"> {/* Added title here with bottom margin */}
+          <div className="mb-2 px-1 flex items-center justify-center">
             <img
-              src="https://www.checkit.net/hubfs/website/img/brand/checkit-logo-horizontal-standard-rgb-blue.svg"
-              alt="Checkit Logo"
-              className="h-16 w-auto" // Set height to h-16, width auto maintains aspect ratio
+              src="https://s3.ca-central-1.amazonaws.com/logojoy/logos/220875599/noBgColor.png?5663.5999999940395"
+              alt="App Logo"
+              className="h-20 w-auto object-contain"
+              style={{ maxWidth: 200 }}
             />
           </div>
           
@@ -71,29 +72,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </NavItem>
                 </li>
                 <li>
-                  <NavItem href="/forms">
-                    <LayoutGrid className="h-5 w-5" />
-                    Forms
+                  <NavItem href="/sites">
+                    <Globe className="h-5 w-5" />
+                    Website
                   </NavItem>
                 </li>
-                <li>
-                  <NavItem href="/submissions">
-                    <ListChecks className="h-5 w-5" />
-                    Submissions
-                  </NavItem>
-                </li>
-                <li>
-                  <NavItem href="/labels">
-                    <Tag className="h-5 w-5" />
-                    Labels
-                  </NavItem>
-                </li>
-                <li>
-                  <NavItem href="/data">
-                    <Database className="h-5 w-5" />
-                    Form Fields
-                  </NavItem>
-                </li>
+                <FormsNav />
                 <li>
                   <NavItem href="/sensors">
                     <Rss className="h-5 w-5" />
@@ -106,7 +90,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     Reporting
                   </NavItem>
                 </li>
-                {/* Add more navigation links here */}
               </ul>
             </nav>
           </div>
@@ -135,5 +118,53 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Footer can be added back here later if needed (consider sidebar offset) */}
     </div>
+  );
+}
+
+function FormsNav() {
+  const pathname = usePathname() ?? "";
+  const [open, setOpen] = useState(pathname.startsWith("/forms") || pathname.startsWith("/submissions") || pathname.startsWith("/data") || pathname.startsWith("/labels"));
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  return (
+    <li>
+      <button
+        className={cn(
+          "flex items-center w-full px-3 py-2 rounded-md text-sm font-medium gap-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+          open ? "bg-gray-100" : ""
+        )}
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        aria-controls="forms-subnav"
+        type="button"
+      >
+        <LayoutGrid className="h-5 w-5" />
+        Forms
+        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", open ? "rotate-180" : "rotate-0")} />
+      </button>
+      {open && (
+        <ul id="forms-subnav" className="pl-8 py-1 space-y-1">
+          <li>
+            <NavItem href="/forms">
+              <span className={isActive("/forms") ? "font-semibold" : ""}>Forms</span>
+            </NavItem>
+          </li>
+          <li>
+            <NavItem href="/submissions">
+              <span className={isActive("/submissions") ? "font-semibold" : ""}>Submissions</span>
+            </NavItem>
+          </li>
+          <li>
+            <NavItem href="/data">
+              <span className={isActive("/data") ? "font-semibold" : ""}>Form Fields</span>
+            </NavItem>
+          </li>
+          <li>
+            <NavItem href="/labels">
+              <span className={isActive("/labels") ? "font-semibold" : ""}>Labels</span>
+            </NavItem>
+          </li>
+        </ul>
+      )}
+    </li>
   );
 }
