@@ -43,6 +43,7 @@ interface FormField {
   options?: string[] | null;
   rating_min?: number | null;
   rating_max?: number | null;
+  required?: boolean | null;
 }
 
 enum RecordingStatus {
@@ -140,6 +141,10 @@ export default function CaptureForm({ formId, isPublic, router, defaultEntryMode
   const [transcriptionEdit, setTranscriptionEdit] = useState<string>('');
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
+  // Add state for required field errors
+  const [requiredFieldErrors, setRequiredFieldErrors] = useState<string[]>([]);
+  // Add state to track if required error note should be shown
+  const [showRequiredNote, setShowRequiredNote] = useState(false);
 
   // --- Refs ---
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -164,7 +169,7 @@ export default function CaptureForm({ formId, isPublic, router, defaultEntryMode
 
             const { data: fData, error: fError } = await supabase
                 .from('form_fields')
-                .select('id, label, internal_key, field_type, display_order, options, rating_min, rating_max')
+                .select('id, label, internal_key, field_type, display_order, options, rating_min, rating_max, required')
                 .eq('template_id', formId)
                 .order('display_order', { ascending: true });
             if (fError) throw fError;
@@ -474,10 +479,31 @@ export default function CaptureForm({ formId, isPublic, router, defaultEntryMode
     });
   };
 
+  // Helper to check if a field is empty
+  const isFieldEmpty = (field: FormField, value: any) => {
+    if (field.required) {
+      if (value === undefined || value === null) return true;
+      if (typeof value === 'string' && value.trim() === '') return true;
+      if (Array.isArray(value) && value.length === 0) return true;
+      if (typeof value === 'boolean') return false; // checkbox/radio
+    }
+    return false;
+  };
+
   const handleSaveSubmission = async () => {
     if (currentPhase !== CapturePhase.Reviewing || Object.keys(parsedResults).length === 0) {
       toast.error("Not in reviewing state or no parsed data available to save.");
       return;
+    }
+    // Check required fields
+    const missingFields = fields.filter(f => f.required && isFieldEmpty(f, parsedResults[f.internal_key]));
+    setShowRequiredNote(missingFields.length > 0);
+    if (missingFields.length > 0) {
+      setRequiredFieldErrors(missingFields.map(f => f.label));
+      toast.error("Please fill all required fields.");
+      return;
+    } else {
+      setRequiredFieldErrors([]);
     }
     setIsSaving(true);
     setCurrentPhase(CapturePhase.Submitting);
@@ -553,6 +579,11 @@ export default function CaptureForm({ formId, isPublic, router, defaultEntryMode
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setManualSubmitting(true);
+    // Check for missing required fields
+    const missingRequired = fields.some(
+      (field) => field.required && (!manualResponses[field.internal_key] || manualResponses[field.internal_key] === "")
+    );
+    setShowRequiredNote(missingRequired);
     try {
       const payload: SubmissionPayload = {
         template_id: formId,
@@ -954,13 +985,22 @@ export default function CaptureForm({ formId, isPublic, router, defaultEntryMode
                 <Button type="button" variant="outline" onClick={selectAllNo}>Select All No</Button>
               </div>
             )}
+            {/* Show required fields note only if needed */}
+            {showRequiredNote && (
+              <div className="mb-2 text-xs text-red-600 font-medium">
+                Fields marked with <span className="text-red-500">*</span> are required.
+              </div>
+            )}
             <form className="space-y-6" onSubmit={handleManualSubmit}>
               {fields.map((field) => (
                 <div
                   key={field.id}
                   className="p-4 bg-gray-50 rounded-lg border mb-4 flex items-center justify-between gap-4"
                 >
-                  <label className="block font-medium text-lg flex-1 pr-4">{field.label}</label>
+                  <label className="block font-medium text-lg flex-1 pr-4">
+                    {field.label}
+                    {field.required ? <span className="text-red-500 ml-1">*</span> : null}
+                  </label>
                   <div className="flex-shrink-0 min-w-[180px]">
                     {renderManualFieldInput(field)}
                   </div>
@@ -981,7 +1021,15 @@ export default function CaptureForm({ formId, isPublic, router, defaultEntryMode
               <div className="space-y-4 p-4 border rounded-md bg-blue-50">
                   <h2 className="text-lg font-medium">Instructions</h2>
                   <p>Click &quot;Start Recording&quot; and clearly state the information for the following fields:</p>
-                  <ul className="list-disc pl-5 space-y-1">{fields.length > 0 ? fields.map(field => (<li key={field.id}>{field.label}{renderFieldHints(field) && <span className="text-sm text-gray-600 ml-2">({renderFieldHints(field)})</span>}</li>)) : <li>No fields defined.</li>}</ul>
+                  <ul className="list-disc pl-5 space-y-1">{fields.length > 0 ? fields.map(field => (
+                    <li key={field.id}>
+                      <span>
+                        {field.label}
+                        {field.required ? <span className="text-red-500 ml-1">*</span> : null}
+                      </span>
+                      {renderFieldHints(field) && <span className="text-sm text-gray-600 ml-2">({renderFieldHints(field)})</span>}
+                    </li>
+                  )) : <li>No fields defined.</li>}</ul>
                   {recordingStatus === RecordingStatus.PermissionDenied && <p className="text-yellow-600 font-medium">Microphone permission denied. Please enable it in your browser settings.</p>}
               </div>
           )}
@@ -989,7 +1037,15 @@ export default function CaptureForm({ formId, isPublic, router, defaultEntryMode
               <div className="space-y-4 p-4 border rounded-md bg-red-50">
                   <h2 className="text-lg font-medium text-red-700 flex items-center"><Mic className="h-5 w-5 mr-2 animate-pulse" /> Recording...</h2>
                   <p>Please provide information for:</p>
-                  <ul className="list-disc pl-5 space-y-1">{fields.map(field => (<li key={field.id}>{field.label}{renderFieldHints(field) && <span className="text-sm text-gray-600 ml-2">({renderFieldHints(field)})</span>}</li>))}</ul>
+                  <ul className="list-disc pl-5 space-y-1">{fields.map(field => (
+                    <li key={field.id}>
+                      <span>
+                        {field.label}
+                        {field.required ? <span className="text-red-500 ml-1">*</span> : null}
+                      </span>
+                      {renderFieldHints(field) && <span className="text-sm text-gray-600 ml-2">({renderFieldHints(field)})</span>}
+                    </li>
+                  ))}</ul>
               </div>
           )}
           {currentPhase === CapturePhase.Processing && (
@@ -1000,67 +1056,77 @@ export default function CaptureForm({ formId, isPublic, router, defaultEntryMode
           )}
           {currentPhase === CapturePhase.Reviewing && (
               <div className="space-y-4 p-4 border rounded-md bg-green-50" style={{ minHeight: 500 }}>
-                  <Tabs value={reviewTab} onValueChange={v => setReviewTab(v as 'review' | 'transcription')}>
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="review">Review & Edit</TabsTrigger>
-                      <TabsTrigger value="transcription">Transcription</TabsTrigger>
-                    </TabsList>
-                    <div style={{ minHeight: 400 }}>
-                      <TabsContent value="review">
-                        <div className="pt-2">
-                          <h2 className="text-lg font-medium mb-2">Review & Edit</h2>
-                          <p className="mb-4">Please review the extracted information and make any necessary corrections before saving.</p>
-                          <div className="space-y-4 border-t pt-4">
-                            {fields.length > 0 ? (
-                              fields.map(field => {
-                                const value = parsedResults[field.internal_key];
-                                const isEmpty =
-                                  value === undefined || value === null ||
-                                  (typeof value === 'string' && value.trim() === '') ||
-                                  (Array.isArray(value) && value.length === 0);
-                                return (
-                                  <div
-                                    key={field.id}
-                                    className={`p-3 rounded-md border mb-2 ${isEmpty ? 'border-red-500 bg-red-50' : 'border-gray-200'} flex flex-col gap-1`}
-                                  >
-                                    <Label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700 mb-1">
-                                      {field.label}
-                                    </Label>
-                                    {renderFieldInput(field)}
-                                    {isEmpty && (
-                                      <span className="text-xs text-red-600 mt-1">Not populated</span>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <p>No fields defined.</p>
-                            )}
-                          </div>
-                          {processingError && <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>}
+                {/* Show required fields note only if needed */}
+                {showRequiredNote && (
+                  <div className="mb-2 text-xs text-red-600 font-medium">
+                    Fields marked with <span className="text-red-500">*</span> are required.
+                  </div>
+                )}
+                <Tabs value={reviewTab} onValueChange={v => setReviewTab(v as 'review' | 'transcription')}>
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="review">Review & Edit</TabsTrigger>
+                    <TabsTrigger value="transcription">Transcription</TabsTrigger>
+                  </TabsList>
+                  <div style={{ minHeight: 400 }}>
+                    <TabsContent value="review">
+                      <div className="pt-2">
+                        <h2 className="text-lg font-medium mb-2">Review & Edit</h2>
+                        <p className="mb-4">Please review the extracted information and make any necessary corrections before saving.</p>
+                        <div className="space-y-4 border-t pt-4">
+                          {fields.length > 0 ? (
+                            fields.map(field => {
+                              const value = parsedResults[field.internal_key];
+                              const isEmpty =
+                                value === undefined || value === null ||
+                                (typeof value === 'string' && value.trim() === '') ||
+                                (Array.isArray(value) && value.length === 0);
+                              return (
+                                <div
+                                  key={field.id}
+                                  className={`p-3 rounded-md border mb-2 ${isEmpty ? 'border-red-500 bg-red-50' : 'border-gray-200'} flex flex-col gap-1`}
+                                >
+                                  <Label htmlFor={field.internal_key} className="block text-sm font-medium text-gray-700 mb-1">
+                                    {field.label}
+                                    {field.required ? <span className="text-red-500 ml-1">*</span> : null}
+                                  </Label>
+                                  {renderFieldInput(field)}
+                                  {isEmpty && (
+                                    <span className="text-xs text-red-600 mt-1">Not populated</span>
+                                  )}
+                                  {requiredFieldErrors.includes(field.label) && (
+                                    <span className="text-xs text-red-600 mt-1">This field is required.</span>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p>No fields defined.</p>
+                          )}
                         </div>
-                      </TabsContent>
-                      <TabsContent value="transcription">
-                        <div className="pt-2 text-left">
-                          <h2 className="text-lg font-medium mb-2">Transcription</h2>
-                          <p className="mb-4">Edit the transcription below and click Regenerate to update the parsed fields.</p>
-                          <Textarea
-                            id="editable-transcription"
-                            value={transcriptionEdit}
-                            onChange={e => setTranscriptionEdit(e.target.value)}
-                            rows={5}
-                            className="w-full bg-white text-sm mb-4"
-                            disabled={regenerating}
-                          />
-                          <Button onClick={handleRegenerate} disabled={regenerating || !transcriptionEdit.trim()}>
-                            {regenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                            Regenerate
-                          </Button>
-                          {regenerateError && <p className="text-red-500 mt-2">{regenerateError}</p>}
-                        </div>
-                      </TabsContent>
-                    </div>
-                  </Tabs>
+                        {processingError && <p className="text-center text-red-500"><span className="font-medium">Processing Error:</span> {processingError}</p>}
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="transcription">
+                      <div className="pt-2 text-left">
+                        <h2 className="text-lg font-medium mb-2">Transcription</h2>
+                        <p className="mb-4">Edit the transcription below and click Regenerate to update the parsed fields.</p>
+                        <Textarea
+                          id="editable-transcription"
+                          value={transcriptionEdit}
+                          onChange={e => setTranscriptionEdit(e.target.value)}
+                          rows={5}
+                          className="w-full bg-white text-sm mb-4"
+                          disabled={regenerating}
+                        />
+                        <Button onClick={handleRegenerate} disabled={regenerating || !transcriptionEdit.trim()}>
+                          {regenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                          Regenerate
+                        </Button>
+                        {regenerateError && <p className="text-red-500 mt-2">{regenerateError}</p>}
+                      </div>
+                    </TabsContent>
+                  </div>
+                </Tabs>
               </div>
           )}
 
