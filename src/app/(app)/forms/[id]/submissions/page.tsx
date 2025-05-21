@@ -45,25 +45,21 @@ export default function FormSubmissionsListPage() {
     const router = useRouter();
     const templateId = params?.id as string | undefined;
 
+    // All hooks must be called unconditionally at the top
     const [template, setTemplate] = useState<FormTemplate | null>(null);
     const [submissions, setSubmissions] = useState<Submission[]>([]);
     const [fields, setFields] = useState<FormField[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    // --- Sorting State --- 
-    const [sortKey, setSortKey] = useState<string | null>('created_at'); // Default sort
-    const [sortDirection, setSortDirection] = useState<SortDirection>('desc'); // Default direction
+    const [sortKey, setSortKey] = useState<string | null>('created_at');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const supabase = createClientComponentClient();
 
-    if (!templateId) {
-        return <div>Error: Form ID is missing.</div>;
-    }
-
     useEffect(() => {
+        if (!templateId) return;
+        setLoading(true);
+        setError(null);
         const fetchSubmissionsAndFields = async () => {
-            if (!templateId) return;
-            setLoading(true);
-            setError(null);
             try {
                 // Fetch template name first for breadcrumbs/title
                 const { data: tData, error: tError } = await supabase
@@ -71,7 +67,6 @@ export default function FormSubmissionsListPage() {
                     .select('id, name')
                     .eq('id', templateId)
                     .single();
-                
                 if (tError) throw new Error(`Failed to fetch form template: ${tError.message}`);
                 if (!tData) throw new Error('Form template not found.');
                 setTemplate(tData);
@@ -82,7 +77,6 @@ export default function FormSubmissionsListPage() {
                     .select('id, label, internal_key, display_order')
                     .eq('template_id', templateId)
                     .order('display_order', { ascending: true });
-                
                 if (fError) throw new Error(`Failed to fetch form fields: ${fError.message}`);
                 setFields(fData || []);
 
@@ -92,10 +86,8 @@ export default function FormSubmissionsListPage() {
                     .select('id, created_at, form_data')
                     .eq('template_id', templateId)
                     .order('created_at', { ascending: false });
-
                 if (sError) throw new Error(`Failed to fetch submissions: ${sError.message}`);
                 setSubmissions(sData || []);
-
             } catch (err) {
                 console.error("Error fetching submissions list/fields:", err);
                 setError(err instanceof Error ? err.message : "An unknown error occurred.");
@@ -105,6 +97,46 @@ export default function FormSubmissionsListPage() {
         };
         fetchSubmissionsAndFields();
     }, [templateId, supabase]);
+
+    const sortedSubmissions = useMemo(() => {
+        if (!submissions) return [];
+        if (!sortKey) return submissions;
+        const sorted = [...submissions].sort((a, b) => {
+            let valA, valB;
+            if (sortKey === 'created_at') {
+                valA = a.created_at ? new Date(a.created_at).getTime() : -Infinity;
+                valB = b.created_at ? new Date(b.created_at).getTime() : -Infinity;
+            } else {
+                valA = a.form_data?.[sortKey];
+                valB = b.form_data?.[sortKey];
+                if (valA == null && valB == null) return 0;
+                if (valA == null) return sortDirection === 'asc' ? -1 : 1;
+                if (valB == null) return sortDirection === 'asc' ? 1 : -1;
+                const numA = Number(valA);
+                const numB = Number(valB);
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    valA = numA;
+                    valB = numB;
+                } else {
+                    valA = String(valA).toLowerCase();
+                    valB = String(valB).toLowerCase();
+                }
+            }
+            if (valA < valB) {
+                return sortDirection === 'asc' ? -1 : 1;
+            }
+            if (valA > valB) {
+                return sortDirection === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+        return sorted;
+    }, [submissions, sortKey, sortDirection]);
+
+    // Only do conditional rendering after all hooks
+    if (!templateId) {
+        return <div>Error: Form ID is missing.</div>;
+    }
 
     // --- Sorting Logic --- 
     const handleSort = (key: string) => {
@@ -117,54 +149,6 @@ export default function FormSubmissionsListPage() {
             setSortDirection('asc');
         }
     };
-
-    // Sort submissions based on sortKey and sortDirection
-    const sortedSubmissions = useMemo(() => {
-        if (!submissions) return [];
-        if (!sortKey) return submissions;
-        
-        const sorted = [...submissions].sort((a, b) => {
-            let valA, valB;
-
-            if (sortKey === 'created_at') {
-                // Explicitly compare dates
-                valA = a.created_at ? new Date(a.created_at).getTime() : -Infinity; 
-                valB = b.created_at ? new Date(b.created_at).getTime() : -Infinity; 
-            } else {
-                // Handle dynamic fields, checking for null/undefined
-                valA = a.form_data?.[sortKey];
-                valB = b.form_data?.[sortKey];
-
-                // Treat null/undefined consistently (e.g., place them at the bottom when ascending)
-                if (valA == null && valB == null) return 0;
-                if (valA == null) return sortDirection === 'asc' ? -1 : 1; 
-                if (valB == null) return sortDirection === 'asc' ? 1 : -1; 
-
-                // Attempt numeric comparison if both are numbers
-                const numA = Number(valA);
-                const numB = Number(valB);
-                if (!isNaN(numA) && !isNaN(numB)) {
-                    valA = numA;
-                    valB = numB;
-                } else {
-                     // Fallback to locale-aware string comparison
-                    valA = String(valA).toLowerCase(); 
-                    valB = String(valB).toLowerCase();
-                }
-            }
-
-            // Comparison logic
-            if (valA < valB) {
-                return sortDirection === 'asc' ? -1 : 1;
-            } 
-            if (valA > valB) {
-                return sortDirection === 'asc' ? 1 : -1;
-            }
-            return 0;
-        });
-
-        return sorted;
-    }, [submissions, sortKey, sortDirection]);
 
     const breadcrumbItems = [
         { label: "Forms", href: "/forms" },
