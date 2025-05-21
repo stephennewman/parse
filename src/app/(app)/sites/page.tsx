@@ -6,6 +6,9 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useRouter } from 'next/navigation';
 import { Globe } from 'lucide-react';
 
+// File Purpose: This page allows users to manage and view different physical locations or sites within their organization.
+// Last updated: 2025-05-21
+
 const mockSites = [
   { id: '1', name: 'My First Site', subdomain: 'myfirstsite', published_at: '2024-09-01' },
   { id: '2', name: 'Demo Site', subdomain: 'demo', published_at: null },

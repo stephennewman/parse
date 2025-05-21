@@ -45,6 +45,9 @@ function FieldRow({ field }: { field: FormField }) {
   );
 }
 
+// File Purpose: This page shows the details of a specific form template, including its fields and options to edit or delete it.
+// Last updated: 2025-05-21
+
 export default function FormDetailPage() {
   const params = useParams();
   const router = useRouter(); // Initialize router

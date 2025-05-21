@@ -1,3 +1,5 @@
+# File Purpose: This file contains configuration settings for the Supabase backend, controlling how the database and services are set up.
+# Last updated: 2025-05-21
 
 [functions.process-submission]
 enabled = true

@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { format } from 'date-fns'; // For formatting timestamp
 
+// File Purpose: This page shows the details of a specific form submission, including all the data that was captured and saved.
+// Last updated: 2025-05-21
+
 // Define types (can be moved to a shared types file later)
 interface Submission {
     id: string;

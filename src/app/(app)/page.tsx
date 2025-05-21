@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Loader2, FilePlus, ListChecks, AlertCircle, LayoutGrid, BarChart2, PieChart, Gauge } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
+// File Purpose: This is the main dashboard page, showing key stats, recent activity, and quick actions for users after they log in.
+// Last updated: 2025-05-21
+
 // Fake/demo data fallback
 const FAKE_LABELS_PER_DAY = [4, 7, 2, 9, 5, 3, 6];
 const FAKE_COMPLIANCE = [

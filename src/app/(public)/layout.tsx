@@ -4,6 +4,9 @@ interface PublicLayoutProps {
   children: React.ReactNode;
 }
 
+// File Purpose: This file sets up the layout for all public-facing pages, ensuring a clean and simple look for users who are not logged in.
+// Last updated: 2025-05-21
+
 // This layout applies to all routes within the (public) group.
 // It does NOT include the sidebar/AppLayout.
 export default function PublicLayout({ children }: PublicLayoutProps) {

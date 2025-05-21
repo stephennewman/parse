@@ -19,6 +19,9 @@ import Image from 'next/image';
 // We need the Database type if we want type safety with Supabase
 // import type { Database } from '@/lib/database.types'; // Assuming you create this file later
 
+// File Purpose: This page allows users to log in to their account to access private features and data.
+// Last updated: 2025-05-21
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -16,6 +16,9 @@ const openai = new OpenAI({
 //   required?: boolean;
 // }
 
+// File Purpose: This API route helps generate a form schema using AI, making it easier to create new forms automatically.
+// Last updated: 2025-05-21
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

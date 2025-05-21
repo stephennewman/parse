@@ -30,6 +30,9 @@ interface FormTemplate {
   // user_id: string; // Include if needed
 }
 
+// File Purpose: This page lists all the form templates a user has created, with options to view, edit, or delete them.
+// Last updated: 2025-05-21
+
 export default function FormsPage() {
   const [forms, setForms] = useState<FormTemplate[]>([]); // State for forms
   const [loading, setLoading] = useState(true);          // Loading state

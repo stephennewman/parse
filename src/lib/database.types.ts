@@ -1,3 +1,6 @@
+// File Purpose: This file defines the types and structure of the database, helping the app and Supabase work together safely and correctly.
+// Last updated: 2025-05-21
+
 // --- CMS MVP Types ---
 export interface Site {
   id: string;

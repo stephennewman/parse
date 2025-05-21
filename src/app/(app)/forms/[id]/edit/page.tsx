@@ -32,6 +32,9 @@ import {
   Star,
 } from 'lucide-react';
 
+// File Purpose: This page allows users to edit an existing form template, including changing fields, options, and structure.
+// Last updated: 2025-05-21
+
 // Interface for field state (matches NewFormPage)
 interface FormFieldState {
   // Client-side temporary ID for React key prop and state management

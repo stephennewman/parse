@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// File Purpose: This API route receives data from external webhooks (like sensors or integrations) and processes it for the app.
+// Last updated: 2025-05-21
+
 // Optionally set your DT signature secret here or via env
 const DT_SIGNATURE_SECRET = process.env.DT_SIGNATURE_SECRET;
 

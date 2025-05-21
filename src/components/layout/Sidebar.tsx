@@ -7,6 +7,7 @@ import { Home, FileText, Database } from 'lucide-react'; // <-- Import Database 
 
 // ... other imports and component definition ...
 
+// File Purpose: This component displays the sidebar navigation menu, letting users move between different sections of the app.
 export function Sidebar() {
   const pathname = usePathname();
 

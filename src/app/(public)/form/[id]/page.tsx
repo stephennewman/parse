@@ -4,11 +4,14 @@ import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import CaptureForm from '@/components/CaptureForm'; // <<< Import the shared component
 
+// File Purpose: This page allows anyone (even without an account) to fill out a form using their voice, making it easy to collect data from the public.
+// Last updated: 2025-05-21
+
 // This page renders the form publicly, without the app layout
 export default function PublicCapturePage() {
   const params = useParams();
   const router = useRouter(); // Router is still needed for the CaptureForm component
-  const id = params.id as string;
+  const id = params?.id as string | undefined;
 
   if (!id) {
     // Handle case where ID is missing

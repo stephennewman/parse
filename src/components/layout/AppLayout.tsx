@@ -7,6 +7,9 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Gauge, LayoutGrid, ListChecks, Database, Tag, Rss, FileText, Globe, ChevronDown, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// File Purpose: This component provides the main app layout, including the sidebar, header, and content area for logged-in users.
+// Last updated: 2025-05-21
+
 interface AppLayoutProps {
   children: React.ReactNode;
 }

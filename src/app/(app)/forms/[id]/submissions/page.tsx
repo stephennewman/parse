@@ -17,6 +17,9 @@ import { Button } from '@/components/ui/button';
 import { Eye, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 
+// File Purpose: This page lists all submissions for a specific form, letting users review and manage collected data.
+// Last updated: 2025-05-21
+
 // Types
 interface Submission {
     id: string;

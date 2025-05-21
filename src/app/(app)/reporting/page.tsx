@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { FileText } from 'lucide-react';
 import Link from "next/link";
 
+// File Purpose: This page provides reporting and analytics features, helping users review compliance and activity data.
+// Last updated: 2025-05-21
+
 const report = {
   site: "Boston Site A - Kitchen",
   date: "2024-06-10",

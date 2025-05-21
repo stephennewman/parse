@@ -1,5 +1,8 @@
 "use client";
 
+// File Purpose: This file powers the main voice-to-form experience. It lets users record their voice, transcribes it, and uses AI to fill out forms automatically. Both public and private forms use this component.
+// Last updated: 2025-05-21
+
 // Reusable component for the entire capture & submission process
 
 import React, { useState, useEffect, useRef } from 'react';

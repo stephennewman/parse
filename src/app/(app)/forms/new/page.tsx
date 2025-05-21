@@ -34,6 +34,9 @@ import {
   Star,
 } from 'lucide-react';
 
+// File Purpose: This page lets users create a new form template by adding fields and setting up the structure for future data collection.
+// Last updated: 2025-05-21
+
 interface FormFieldState {
   id: string;
   fieldName: string;

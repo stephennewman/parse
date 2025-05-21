@@ -1,3 +1,5 @@
+// File Purpose: This serverless function processes form submissions, allowing for custom backend logic when new data is saved.
+// Last updated: 2025-05-21
 // @ts-nocheck
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment

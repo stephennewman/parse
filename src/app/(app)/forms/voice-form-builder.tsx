@@ -1,6 +1,9 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 
+// File Purpose: This file provides a builder tool for creating forms that are optimized for voice input and AI parsing.
+// Last updated: 2025-05-21
+
 // FormPreview component to render the generated form schema
 function FormPreview({ schema }: { schema: any[] }) {
   if (!schema || schema.length === 0) return <div>No fields to preview.</div>;

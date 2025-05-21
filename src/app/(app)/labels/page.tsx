@@ -1,3 +1,5 @@
+// File Purpose: This page manages and displays all label-related features, such as printing and tracking food safety labels.
+// Last updated: 2025-05-21
 import React from "react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";

@@ -1,3 +1,6 @@
+// File Purpose: This file defines the different types of form fields that users can add, helping the app and AI understand how to handle each field.
+// Last updated: 2025-05-21
+
 export interface FormFieldTypeOption {
   label: string; // e.g., "Option 1"
   value: string; // e.g., "option_1"

@@ -1,3 +1,5 @@
+// File Purpose: This file controls which pages require users to be logged in, helping to protect private data and routes in the app.
+// Last updated: 2025-05-21
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';

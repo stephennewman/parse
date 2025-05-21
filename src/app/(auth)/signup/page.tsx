@@ -19,6 +19,9 @@ import { Label } from '~/components/ui/label';
 import Image from 'next/image';
 // import type { Database } from '@/lib/database.types';
 
+// File Purpose: This page lets new users create an account to start using the platform.
+// Last updated: 2025-05-21
+
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

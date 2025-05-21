@@ -8,6 +8,9 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { Loader2, Database, List } from 'lucide-react';
 import Link from 'next/link';
 
+// File Purpose: This page provides access to raw data, form fields, or other database-driven resources for advanced users.
+// Last updated: 2025-05-21
+
 // Define an interface for the shape of your form field data
 // Adjust properties based on your actual 'form_fields' table columns
 interface FormField {

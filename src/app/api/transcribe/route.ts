@@ -9,6 +9,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// File Purpose: This API route receives audio recordings and uses AI to transcribe them into text for the voice-to-form workflow.
+// Last updated: 2025-05-21
+
 export async function POST(request: NextRequest) {
   let tempFilePath: string | null = null; // Path for temporary file
 

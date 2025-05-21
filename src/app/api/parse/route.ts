@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// File Purpose: This API route takes transcribed text and uses AI to extract and organize the information into structured form data.
+// Last updated: 2025-05-21
+
 // Re-initialize OpenAI client (could potentially share from a utility file later)
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

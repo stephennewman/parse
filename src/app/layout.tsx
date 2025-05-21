@@ -1,3 +1,5 @@
+// File Purpose: This file defines the main layout and structure for all pages in the app, including shared elements like navigation and styles.
+// Last updated: 2025-05-21
 import React from 'react';
 import type { Metadata } from "next";
 import { GeistSans as FontSans } from 'geist/font/sans';

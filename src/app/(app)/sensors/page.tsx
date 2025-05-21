@@ -17,6 +17,9 @@ import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import dynamic from 'next/dynamic';
 
+// File Purpose: This page manages and displays sensor data, such as temperature or other IoT device readings.
+// Last updated: 2025-05-21
+
 // Mock sensor data
 const mockSensors = [
   {
