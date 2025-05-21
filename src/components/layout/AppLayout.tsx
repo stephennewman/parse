@@ -74,31 +74,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     Home
                   </NavItem>
                 </li>
-                <li>
-                  <NavItem href="/sites">
-                    <Globe className="h-5 w-5" />
-                    Sites
-                  </NavItem>
-                </li>
                 <FormsNav />
-                <li>
-                  <NavItem href="/sensors">
-                    <Rss className="h-5 w-5" />
-                    Sensors
-                  </NavItem>
-                </li>
-                <li>
-                  <NavItem href="/labels">
-                    <Tag className="h-5 w-5" />
-                    Labels
-                  </NavItem>
-                </li>
-                <li>
-                  <NavItem href="/reporting">
-                    <FileText className="h-5 w-5" />
-                    Reporting
-                  </NavItem>
-                </li>
               </ul>
             </nav>
           </div>

@@ -14,11 +14,9 @@ export function Sidebar() {
   // Assuming your navigation links are structured something like this:
   const navItems = [
     { href: '/', label: 'Home', icon: Home },
-    { href: '/forms', label: 'Forms', icon: FileText }, // Example existing link
-    { href: '/submissions', label: 'Submissions', icon: FileText }, // Example existing link
-    // {{ Add the new Data link here }}
+    { href: '/forms', label: 'Forms', icon: FileText },
+    { href: '/submissions', label: 'Submissions', icon: FileText },
     { href: '/data', label: 'Form Fields', icon: Database },
-    { href: '/sensors', label: 'Sensors', icon: Database }, // Added Sensors link
   ];
 
   return (

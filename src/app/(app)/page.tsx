@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, addDays, subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
@@ -13,20 +13,6 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 // File Purpose: This is the main dashboard page, showing key stats, recent activity, and quick actions for users after they log in.
 // Last updated: 2025-05-21
 
-// Fake/demo data fallback
-const FAKE_LABELS_PER_DAY = [4, 7, 2, 9, 5, 3, 6];
-const FAKE_COMPLIANCE = [
-  { name: "Compliant", value: 32 },
-  { name: "Non-Compliant", value: 4 },
-];
-const FAKE_RECENT = [
-  { labelType: "Prep Label", food: "Scrambled Eggs", compliance: "Compliant", date: "2024-06-01 10:15" },
-  { labelType: "Consumer Label", food: "Chicken Salad", compliance: "Missing Allergen", date: "2024-06-01 11:00" },
-  { labelType: "Prep Label", food: "Mac & Cheese", compliance: "Compliant", date: "2024-06-01 12:30" },
-  { labelType: "Prep Label", food: "Fruit Cup", compliance: "Compliant", date: "2024-06-01 13:00" },
-  { labelType: "Consumer Label", food: "Apple Pie", compliance: "Compliant", date: "2024-06-01 14:00" },
-];
-
 export default function DashboardPage() {
   const supabase = createClientComponentClient();
   const [loading, setLoading] = useState(true);
@@ -35,25 +21,10 @@ export default function DashboardPage() {
   const [totalSubmissions, setTotalSubmissions] = useState<number>(0);
   const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-
-  // Real data hooks (replace with real fetch if available)
-  const [labelsPerDay, setLabelsPerDay] = useState<number[]>(FAKE_LABELS_PER_DAY);
-  const [compliance, setCompliance] = useState(FAKE_COMPLIANCE);
-  const [recent, setRecent] = useState(FAKE_RECENT);
-  const totalThisWeek = labelsPerDay.reduce((a, b) => a + b, 0);
-  const uniqueFoods = 7; // Fake/demo
-  const complianceRate = Math.round((compliance[0].value / (compliance[0].value + compliance[1].value)) * 100);
-
-  // Chart components state
+  const [submissionsPerDay, setSubmissionsPerDay] = useState<{ date: string, count: number }[]>([]);
+  const [chartReady, setChartReady] = useState(false);
   const [chartComponents, setChartComponents] = useState<any>({});
-
-  // Demo data for new widgets
-  const FORMS_OVERVIEW = [
-    { name: 'Food Safety Checklist', submissions: 12 },
-    { name: 'Prep Label', submissions: 8 },
-    { name: 'Consumer Label', submissions: 16 },
-  ];
-  const ACTIVITY_30D = Array.from({ length: 30 }, (_, i) => ({ day: i + 1, value: Math.floor(Math.random() * 10) + 1 }));
+  const [pieData, setPieData] = useState<{ name: string, value: number }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -66,10 +37,11 @@ export default function DashboardPage() {
           YAxis: recharts.YAxis,
           Tooltip: recharts.Tooltip,
           ResponsiveContainer: recharts.ResponsiveContainer,
+          PieChart: recharts.PieChart,
           Pie: recharts.Pie,
           Cell: recharts.Cell,
-          PieChartComp: recharts.PieChart,
         });
+        setChartReady(true);
       } catch {}
     })();
   }, []);
@@ -89,23 +61,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!userId) return;
-
     const fetchDashboardData = async () => {
       setLoading(true);
       setError(null);
-
       try {
         const [formsCountRes, submissionsCountRes, recentSubsRes] = await Promise.all([
           supabase
             .from('form_templates')
-            .select('count', { count: 'exact', head: true })
-            // .eq('user_id', userId)
-          ,
+            .select('count', { count: 'exact', head: true }),
           supabase
             .from('form_submissions')
-            .select('count', { count: 'exact', head: true })
-            // .eq('user_id', userId)
-          ,
+            .select('count', { count: 'exact', head: true }),
           supabase
             .from('form_submissions')
             .select(`
@@ -113,19 +79,15 @@ export default function DashboardPage() {
               created_at,
               form_templates!inner ( name )
             `)
-            // .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(5)
         ]);
-
         if (formsCountRes.error) throw new Error(`Form count error: ${formsCountRes.error.message}`);
         if (submissionsCountRes.error) throw new Error(`Submission count error: ${submissionsCountRes.error.message}`);
         if (recentSubsRes.error) throw new Error(`Recent submissions error: ${recentSubsRes.error.message}`);
-
         setTotalForms(formsCountRes.count ?? 0);
         setTotalSubmissions(submissionsCountRes.count ?? 0);
         setRecentSubmissions((recentSubsRes.data as unknown as any[]) || []); 
-
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
         setError(err instanceof Error ? err.message : "Failed to load dashboard data.");
@@ -133,8 +95,62 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-
     fetchDashboardData();
+  }, [userId, supabase]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchSubmissionsPerDay = async () => {
+      // Get the date 30 days ago
+      const fromDate = subDays(new Date(), 29);
+      const toDate = new Date();
+      // Fetch all submissions in the last 30 days
+      const { data, error } = await supabase
+        .from('form_submissions')
+        .select('id, created_at')
+        .gte('created_at', fromDate.toISOString())
+        .lte('created_at', toDate.toISOString());
+      if (error) {
+        setSubmissionsPerDay([]);
+        return;
+      }
+      // Group by date (YYYY-MM-DD)
+      const counts: Record<string, number> = {};
+      for (let i = 0; i < 30; i++) {
+        const d = format(addDays(fromDate, i), 'yyyy-MM-dd');
+        counts[d] = 0;
+      }
+      (data || []).forEach((row: any) => {
+        const d = format(new Date(row.created_at), 'yyyy-MM-dd');
+        if (counts[d] !== undefined) counts[d]++;
+      });
+      setSubmissionsPerDay(Object.entries(counts).map(([date, count]) => ({ date, count })));
+    };
+    fetchSubmissionsPerDay();
+  }, [userId, supabase]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchPieData = async () => {
+      const fromDate = subDays(new Date(), 29);
+      const toDate = new Date();
+      const { data, error } = await supabase
+        .from('form_submissions')
+        .select('id, form_templates!inner(name), created_at')
+        .gte('created_at', fromDate.toISOString())
+        .lte('created_at', toDate.toISOString());
+      if (error) {
+        setPieData([]);
+        return;
+      }
+      const counts: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        const name = row.form_templates?.name || 'Unknown';
+        counts[name] = (counts[name] || 0) + 1;
+      });
+      setPieData(Object.entries(counts).map(([name, value]) => ({ name, value })));
+    };
+    fetchPieData();
   }, [userId, supabase]);
 
   if (loading) {
@@ -155,7 +171,8 @@ export default function DashboardPage() {
     );
   }
 
-  const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Pie, Cell, PieChartComp } = chartComponents;
+  const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart: PieChartComp, Pie, Cell } = chartComponents;
+  const pieColors = ["#6366f1", "#8b5cf6", "#f59e42", "#10b981", "#f43f5e", "#fbbf24", "#3b82f6", "#a21caf", "#14b8a6", "#eab308"];
 
   return (
     <div className="space-y-8">
@@ -166,8 +183,57 @@ export default function DashboardPage() {
           <p className="text-lg text-blue-100 font-medium">Your voice-driven workflow partner.</p>
         </div>
       </div>
-      {/* Stat cards row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Charts row (visuals above the fold) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Submissions Per Day Chart (real data) */}
+        <Card className="bg-white border border-gray-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base text-gray-800">Submissions Per Day (Last 30 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chartReady && BarChart ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={submissionsPerDay} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+                  <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} fontSize={10} angle={-45} textAnchor="end" height={50} />
+                  <YAxis allowDecimals={false} fontSize={12} width={30} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center text-gray-400">Loading chart...</div>
+            )}
+          </CardContent>
+        </Card>
+        {/* Submissions By Form Type Pie Chart (real data) */}
+        <Card className="bg-white border border-gray-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base text-gray-800">Submissions by Form Type (Last 30 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chartReady && PieChartComp && Pie ? (
+              pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChartComp>
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChartComp>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center text-gray-400">No submissions in the last 30 days.</div>
+              )
+            ) : (
+              <div className="text-center text-gray-400">Loading chart...</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      {/* Stat cards row (only real data) */}
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
         <Card className="bg-white border border-gray-200 shadow-sm">
           <CardContent className="flex flex-col items-center py-4 px-2">
             <div className="text-xl font-bold text-gray-900">{totalForms}</div>
@@ -180,115 +246,9 @@ export default function DashboardPage() {
             <div className="text-xs text-gray-500">Total Submissions</div>
           </CardContent>
         </Card>
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardContent className="flex flex-col items-center py-4 px-2">
-            <div className="text-xl font-bold text-gray-900">3</div>
-            <div className="text-xs text-gray-500">Active Forms</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardContent className="flex flex-col items-center py-4 px-2">
-            <div className="text-xl font-bold text-gray-900">5</div>
-            <div className="text-xs text-gray-500">Submissions Today</div>
-          </CardContent>
-        </Card>
       </div>
-      {/* Charts and tables stacked */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Submission Trends Chart */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base text-gray-800">Submission Trends (Last 7 Days)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {BarChart ? (
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={labelsPerDay.map((v, i) => ({ day: ['S','M','T','W','T','F','S'][i], value: v }))}>
-                  <XAxis dataKey="day" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="url(#barGradient)" radius={[4, 4, 0, 0]} />
-                  <defs>
-                    <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#3b82f6" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-end gap-2 h-24">
-                {labelsPerDay.map((val, i) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <div className="bg-gradient-to-t from-blue-500 to-purple-500 rounded w-4" style={{ height: `${val * 10}px` }}></div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        {/* Submission Activity 30D Chart */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base text-gray-800">Submission Activity (30 Days)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {BarChart ? (
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={ACTIVITY_30D}>
-                  <XAxis dataKey="day" hide />
-                  <YAxis allowDecimals={false} hide />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="url(#barGradient2)" radius={[2, 2, 0, 0]} />
-                  <defs>
-                    <linearGradient id="barGradient2" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#a21caf" />
-                    </linearGradient>
-                  </defs>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-end gap-2 h-24">
-                {ACTIVITY_30D.map((val, i) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <div className="bg-gradient-to-t from-indigo-500 to-purple-500 rounded w-2" style={{ height: `${val.value * 6}px` }}></div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      {/* Forms Overview and Recent Submissions stacked */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Forms Overview */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base text-gray-800">Forms Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Form Name</TableHead>
-                    <TableHead>Submissions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {FORMS_OVERVIEW.map((form, i) => (
-                    <TableRow key={form.name}>
-                      <TableCell>{form.name}</TableCell>
-                      <TableCell>{form.submissions}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Recent Submissions Table */}
+      {/* Recent Submissions Table (real data) */}
+      <div className="grid grid-cols-1 gap-4">
         <Card className="bg-white border border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base text-gray-800">Recent Submissions</CardTitle>

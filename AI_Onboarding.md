@@ -60,5 +60,13 @@ Parse is a SaaS platform that enables users to define custom forms, capture voic
 - Logged recent changes and open TODOs
 - Created this AI_Onboarding.md file for future updates
 
+## Deployment Log
+
+### 2024-05-21 (America/New_York)
+- **fix: move submission detail page to correct /forms/submissions/[id] route and update view button**
+    - Problem: Clicking the "View" button in the submissions list resulted in a 404 because the detail page was not in the correct route directory.
+    - Solution: Moved the detail page to `src/app/(app)/forms/submissions/[id]/page.tsx` and updated the button to link to `/forms/submissions/[id]`. Removed the old route.
+    - Result: Users can now view individual submission details from the submissions list as expected.
+
 ---
 *Continue to update this log with each major AI-driven change, deploy, or analysis.* 
