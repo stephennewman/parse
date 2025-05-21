@@ -43,7 +43,10 @@ type SortDirection = 'asc' | 'desc';
 export default function FormSubmissionsListPage() {
     const params = useParams();
     const router = useRouter();
-    const templateId = params.id as string;
+    const templateId = params?.id as string | undefined;
+    if (!templateId) {
+        return <div>Error: Form ID is missing.</div>;
+    }
     const supabase = createClientComponentClient();
 
     const [template, setTemplate] = useState<FormTemplate | null>(null);
