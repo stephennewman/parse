@@ -33,11 +33,9 @@ interface FormField {
 export default function SubmissionDetailPage() {
     const params = useParams();
     const submissionId = params?.id as string | undefined;
-    if (!submissionId) {
-        return <div>Error: Submission ID is missing.</div>;
-    }
-    const supabase = createClientComponentClient();
 
+    // All hooks must be called unconditionally at the top
+    const supabase = createClientComponentClient();
     const [submission, setSubmission] = useState<Submission | null>(null);
     const [template, setTemplate] = useState<FormTemplate | null>(null);
     const [fields, setFields] = useState<FormField[]>([]);
@@ -102,6 +100,11 @@ export default function SubmissionDetailPage() {
         { label: 'Submissions', href: '/forms/submissions' },
         { label: "Details", isCurrent: true },
     ];
+
+    // Only do conditional rendering after all hooks
+    if (!submissionId) {
+        return <div>Error: Submission ID is missing.</div>;
+    }
 
     if (loading) return <div>Loading submission details...</div>;
     if (error) return <div className="text-red-500">Error: {error}</div>;
