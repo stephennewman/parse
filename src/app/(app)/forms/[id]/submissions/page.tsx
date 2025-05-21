@@ -44,20 +44,20 @@ export default function FormSubmissionsListPage() {
     const params = useParams();
     const router = useRouter();
     const templateId = params?.id as string | undefined;
-    if (!templateId) {
-        return <div>Error: Form ID is missing.</div>;
-    }
-    const supabase = createClientComponentClient();
 
     const [template, setTemplate] = useState<FormTemplate | null>(null);
     const [submissions, setSubmissions] = useState<Submission[]>([]);
     const [fields, setFields] = useState<FormField[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
     // --- Sorting State --- 
     const [sortKey, setSortKey] = useState<string | null>('created_at'); // Default sort
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc'); // Default direction
+    const supabase = createClientComponentClient();
+
+    if (!templateId) {
+        return <div>Error: Form ID is missing.</div>;
+    }
 
     useEffect(() => {
         const fetchSubmissionsAndFields = async () => {
