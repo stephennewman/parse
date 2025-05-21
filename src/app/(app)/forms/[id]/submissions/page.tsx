@@ -225,7 +225,7 @@ export default function FormSubmissionsListPage() {
                                     variant="ghost" 
                                     size="sm" 
                                     title="View Full Submission Details" // Add title for clarity
-                                    onClick={() => router.push(`/submissions/${submission.id}`)}
+                                    onClick={() => router.push(`/forms/submissions/${submission.id}`)}
                                 >
                                     <Eye className="h-4 w-4" /> 
                                     {/* Optionally remove text if only icon is desired */}
