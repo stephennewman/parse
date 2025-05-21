@@ -444,6 +444,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
         setTranscription(currentTranscription);
         setProcessingState(ProcessingState.Success);
         toast.success("Processing complete! Review and save.");
+        setReviewTab('review');
         setCurrentPhase(CapturePhase.Reviewing);
     } catch (err) {
         console.error("Parsing failed:", err);
@@ -523,7 +524,7 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
       if (isPublic) {
           // Redirect public users to a generic success page
           toast.success("Form submitted successfully! Redirecting...");
-          router.push('/form/submitted'); // <<< REDIRECT to thank you page
+          router.push(`/form/submitted?form=${formId}`); // Add formId as query param
 
       } else {
           // Redirect authenticated users to their submission details page
