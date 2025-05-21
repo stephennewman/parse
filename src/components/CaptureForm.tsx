@@ -105,10 +105,11 @@ interface CaptureFormProps {
     formId: string;
     isPublic: boolean;
     router: AppRouterInstance; // Pass router instance for navigation
+    defaultEntryMode?: 'manual' | 'voice';
 }
 
 // --- The Reusable Component ---
-export default function CaptureForm({ formId, isPublic, router }: CaptureFormProps) {
+export default function CaptureForm({ formId, isPublic, router, defaultEntryMode }: CaptureFormProps) {
   // Instantiate Supabase client here
   const supabase = createClientComponentClient();
 
@@ -128,7 +129,9 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   // <<< Add state for MIME type >>>
   const [recordingMimeType, setRecordingMimeType] = useState<string>('audio/webm');
   // Add entry mode state for public forms
-  const [entryMode, setEntryMode] = useState<'manual' | 'voice'>(isPublic ? 'manual' : 'voice');
+  const [entryMode, setEntryMode] = useState<'manual' | 'voice'>(
+    defaultEntryMode ? defaultEntryMode : isPublic ? 'manual' : 'voice'
+  );
   // Manual form state for public mode
   const [manualResponses, setManualResponses] = useState<Record<string, string | string[] | number>>({});
   const [manualSubmitting, setManualSubmitting] = useState(false);

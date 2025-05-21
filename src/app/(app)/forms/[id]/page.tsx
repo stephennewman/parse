@@ -200,7 +200,7 @@ export default function FormDetailPage() {
   // --- Open Link Handler ---
   const handleOpenLink = () => {
     if (!captureLink) return;
-    window.open(captureLink, '_blank', 'noopener,noreferrer');
+    window.open(`${captureLink}?entryMode=voice`, '_blank', 'noopener,noreferrer');
   };
 
   // Render Form Details
