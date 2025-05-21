@@ -13,9 +13,13 @@ import {
 } from "@/components/ui/card";
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'; // Import the new component
 import { Button } from '@/components/ui/button'; // Re-add Button import
-import { Edit, List, ExternalLink, Trash2 } from 'lucide-react'; // Removed Link2, Copy, Add Trash2
+import { Edit, List, ExternalLink, Trash2, MoreVertical } from 'lucide-react'; // Removed Link2, Copy, Add Trash2
 import { toast } from 'sonner'; // Import toast
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Star } from "lucide-react";
 // Drag and drop imports
 // import { DndContext, closestCenter } from '@dnd-kit/core';
 // import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -70,6 +74,24 @@ export default function FormDetailPage() {
   const handleResponseChange = (fieldId: string, value: string) => {
     setFormResponses((prev) => ({ ...prev, [fieldId]: value }));
   };
+
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [dropdownOpen]);
 
   useEffect(() => {
     if (!id) {
@@ -209,83 +231,95 @@ export default function FormDetailPage() {
       {/* --- Add Breadcrumbs at the top --- */}
       <Breadcrumbs items={breadcrumbItems} />
 
-      {/* Header section with title and action buttons */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="text-2xl font-semibold">{template?.name || 'Form Details'}</h1>
-        {/* Action Buttons Group - Now includes link sharing and delete */}
-        <div className="flex items-center space-x-2 flex-wrap gap-2">
-          {/* Existing Buttons */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/forms/${id}/edit`)}
-            className="cursor-pointer"
-            disabled={isDeleting} // Disable while deleting
-          >
-            <Edit className="mr-2 h-4 w-4" /> Edit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/forms/${id}/submissions`)}
-            className="cursor-pointer"
-            disabled={isDeleting} // Disable while deleting
-          >
-            <List className="mr-2 h-4 w-4" /> View Submissions
-          </Button>
-          
-          {/* Separator (Optional, for visual distinction) */}
-          <div className="h-6 w-px bg-border" aria-hidden="true"></div>
-
-          {/* View Capture Form Button */} 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleOpenLink}
-            disabled={!captureLink || isDeleting}
-            className="cursor-pointer"
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            View Form
-          </Button>
-          
-          {/* Delete Button */}          
-          <Button
-            variant="destructive" // Keep destructive variant for semantic meaning and potential base styles
-            size="sm"
-            onClick={handleDeleteTemplate}
-            disabled={isDeleting} // Disable while deleting
-            // Add classes for red outline, red text, transparent background, and hover effect
-            className="cursor-pointer border border-destructive text-destructive bg-transparent hover:bg-destructive/10" 
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </Button>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{template.name}</CardTitle>
-          {template.description && (
+      {/* --- Add shared header and action bar (mirroring edit page style) --- */}
+      <Card className="max-w-2xl mt-0">
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              {template.name}
+            </CardTitle>
             <CardDescription>{template.description}</CardDescription>
-          )}
+          </div>
+          <div className="flex gap-2 items-center relative">
+            <Button variant="outline" onClick={() => window.open(captureLink, '_blank')} size="sm">
+              <ExternalLink className="w-4 h-4 mr-1" /> View Form
+            </Button>
+            {/* Custom Meatball Dropdown */}
+            <div ref={dropdownRef} className="relative">
+              <Button variant="ghost" size="icon" aria-label="More actions" onClick={() => setDropdownOpen((v) => !v)} className="cursor-pointer">
+                <MoreVertical className="w-5 h-5" />
+              </Button>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-50">
+                  <button
+                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                    onClick={() => { setDropdownOpen(false); router.push(`/forms/${id}/edit`); }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" /> Edit
+                  </button>
+                  <button
+                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                    onClick={() => { setDropdownOpen(false); router.push(`/forms/${id}/submissions`); }}
+                  >
+                    <List className="w-4 h-4 mr-2" /> Submissions
+                  </button>
+                  <button
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                    onClick={() => { setDropdownOpen(false); handleDeleteTemplate(); }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
-        {/* Optionally add more details like created date in CardContent */}
+        <Separator />
+        <CardContent>
+          {/* --- Form Preview Section --- */}
+          <div className="mt-4">
+            <h3 className="font-semibold mb-2 text-lg">Form Preview</h3>
+            <div className="space-y-4 text-left">
+              {fields.length === 0 && <div className="text-gray-500">No fields defined for this form.</div>}
+              {fields.map((field) => (
+                <div key={field.id} className="border rounded p-3 bg-gray-50">
+                  <div className="font-medium text-gray-800 mb-1 flex items-center gap-2">
+                    {field.label}
+                    {/* Safely show required asterisk if present */}
+                    {('required' in field && (field as any).required) && <span className="text-red-500">*</span>}
+                    <span className="text-xs text-gray-500">({field.field_type})</span>
+                  </div>
+                  {/* Render a disabled input/preview based on field type */}
+                  {(() => {
+                    // Use 'as any' to access options/rating_max if present
+                    const options = 'options' in field ? (field as any).options || [] : [];
+                    const ratingMax = 'rating_max' in field ? (field as any).rating_max ?? 5 : 5;
+                    switch (field.field_type) {
+                      case 'text':
+                      case 'number':
+                      case 'date':
+                        return <Input disabled placeholder={field.label} type={field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : 'text'} />;
+                      case 'textarea':
+                        return <Textarea disabled placeholder={field.label} />;
+                      case 'checkbox':
+                        return <div className="flex items-center gap-2"><input type="checkbox" disabled /> <span>{field.label}</span></div>;
+                      case 'select':
+                      case 'radio':
+                        return <div className="flex gap-2 flex-wrap">{options.map((opt: string, idx: number) => <Button key={idx} variant="outline" size="sm" disabled>{opt}</Button>)}</div>;
+                      case 'multicheckbox':
+                        return <div className="flex gap-2 flex-wrap">{options.map((opt: string, idx: number) => <div key={idx} className="flex items-center gap-1"><input type="checkbox" disabled /> <span>{opt}</span></div>)}</div>;
+                      case 'rating':
+                        return <div className="flex gap-1">{Array.from({ length: ratingMax as number }, (_, i) => <Star key={i} className="w-4 h-4 text-gray-300" />)}</div>;
+                      default:
+                        return <div className="text-gray-400">Unsupported field type</div>;
+                    }
+                  })()}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
       </Card>
-
-      <h2 className="text-xl font-semibold">Fields</h2>
-      {fields.length > 0 ? (
-        <div className="border rounded bg-white divide-y">
-          {fields.map((field) => (
-            <FieldRow key={field.id} field={field} />
-          ))}
-        </div>
-      ) : (
-        <p>This form template has no fields defined.</p>
-      )}
-
-      {/* TODO: Add functionality to use this form (e.g., "Start Voice Input" button) */}
     </div>
   );
 } 

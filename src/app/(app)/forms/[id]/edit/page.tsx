@@ -43,9 +43,12 @@ interface FormFieldState {
   dbId?: string;
   fieldName: string;
   fieldType: string;
+  required?: boolean;
   // <<< Add optional rating properties >>>
   rating_min?: number;
   rating_max?: number;
+  checkboxDescription?: string;
+  checkboxTextDescription?: string;
 }
 
 // Interface matching DB form_fields structure
@@ -59,6 +62,7 @@ interface FormField {
     options?: string[] | null;
     rating_min?: number | null;
     rating_max?: number | null;
+    required?: boolean | null;
 }
 
 // Interface for the payload to insert new fields
@@ -71,6 +75,7 @@ interface NewFormFieldPayload {
     options?: string[] | null;
     rating_min?: number | null;
     rating_max?: number | null;
+    required?: boolean | null;
 }
 
 // Define allowed field types
@@ -133,7 +138,7 @@ export default function EditFormPage() {
           // Fetch associated fields
           const { data: fieldsData, error: fieldsError } = await supabase
               .from('form_fields')
-              .select('id, label, field_type, display_order, options, rating_min, rating_max') // Fetch db id, label, type, options, rating
+              .select('id, label, field_type, display_order, options, rating_min, rating_max, required') // Fetch db id, label, type, options, rating
               .eq('template_id', formId)
               .order('display_order', { ascending: true });
 
@@ -145,6 +150,7 @@ export default function EditFormPage() {
               dbId: field.id,                // Store the original DB ID
               fieldName: field.label,        // Map label to fieldName
               fieldType: field.field_type,   // Map field_type to fieldType
+              required: field.required ?? false,
               rating_min: field.rating_min ?? undefined, // <<< Map rating_min
               rating_max: field.rating_max ?? undefined, // <<< Map rating_max
           }));
@@ -186,20 +192,20 @@ export default function EditFormPage() {
     setFields([
       ...fields,
       {
-        clientId: crypto.randomUUID(), // Use clientId for React key
+        clientId: crypto.randomUUID(),
         fieldName: "",
         fieldType: FIELD_TYPES[0] || "text",
+        required: false,
       },
     ]);
   };
 
-  const handleFieldChange = (clientId: string, property: keyof FormFieldState, value: string) => {
+  const handleFieldChange = (clientId: string, property: keyof FormFieldState, value: any) => {
     setFields(prevFields =>
       prevFields.map(field =>
         field.clientId === clientId ? { ...field, [property]: value } : field
       )
     );
-    // If changing type *away* from select, radio, or multicheckbox, clear the stored options text for that field
     if (property === 'fieldType' && value !== 'select' && value !== 'radio' && value !== 'multicheckbox') {
       setFieldOptionsText(prev => {
         const newState = { ...prev };
@@ -207,13 +213,12 @@ export default function EditFormPage() {
         return newState;
       });
     }
-    // <<< If changing type *away* from rating, clear rating values >>>
     if (property === 'fieldType' && value !== 'rating') {
-        setFieldRatingValues(prev => {
-            const newState = { ...prev };
-            delete newState[clientId];
-            return newState;
-        });
+      setFieldRatingValues(prev => {
+        const newState = { ...prev };
+        delete newState[clientId];
+        return newState;
+      });
     }
   };
 
@@ -346,6 +351,7 @@ export default function EditFormPage() {
                         options: optionsPayload, // Add options to update payload
                         rating_min: ratingMinPayload, // <<< Add rating min
                         rating_max: ratingMaxPayload, // <<< Add rating max
+                        required: !!currentField.required,
                     });
                 } else { // New field
                      fieldsToAdd.push({
@@ -357,6 +363,7 @@ export default function EditFormPage() {
                          options: optionsPayload, // Add options to insert payload
                          rating_min: ratingMinPayload, // <<< Add rating min
                          rating_max: ratingMaxPayload, // <<< Add rating max
+                         required: !!currentField.required,
                      });
                 }
             }
@@ -436,14 +443,7 @@ export default function EditFormPage() {
       {/* Left: Form Builder */}
       <div className="flex-1 space-y-4">
         <Breadcrumbs items={breadcrumbItems} />
-        <h1 className="text-2xl font-semibold">Edit Form: {formTitle || ''}</h1>
         <Card>
-          <CardHeader>
-            <CardTitle>Edit Form Template</CardTitle>
-            <CardDescription>
-              Modify the title, description, and fields for this form template.
-            </CardDescription>
-          </CardHeader>
           <CardContent className="space-y-4">
             {/* Title Input */}
             <div className="space-y-2">
@@ -479,16 +479,20 @@ export default function EditFormPage() {
                 ) : (
                   fields.map((field, index) => (
                     <React.Fragment key={field.clientId}>
-                      <div className="flex items-end gap-4 p-4 border rounded-md bg-gray-50">
-                        <div className="flex-grow space-y-2">
-                          <Label htmlFor={`field-name-${field.clientId}`}>Field Name #{index + 1}</Label>
-                          <Input
-                            id={`field-name-${field.clientId}`}
-                            placeholder="e.g., Full Name"
-                            value={field.fieldName}
-                            onChange={(e) => handleFieldChange(field.clientId, 'fieldName', e.target.value)}
+                      <div className="flex items-end gap-4 p-4 border rounded-md bg-gray-50 relative">
+                        {/* Required toggle: top right, styled black */}
+                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                          <span className="text-xs font-medium">Required</span>
+                          <input
+                            type="checkbox"
+                            checked={field.required || false}
+                            onChange={e => handleFieldChange(field.clientId, 'required', e.target.checked)}
+                            className="toggle toggle-sm accent-black"
+                            aria-label="Toggle required field"
                           />
-                          <div className="flex gap-2 mt-2">
+                        </div>
+                        <div className="flex-grow space-y-2">
+                          <div className="flex gap-2 mb-2">
                             {[
                               { type: 'text', icon: Type, label: 'Text' },
                               { type: 'number', icon: Hash, label: 'Number' },
@@ -512,6 +516,81 @@ export default function EditFormPage() {
                               </button>
                             ))}
                           </div>
+                          <Input
+                            id={`field-name-${field.clientId}`}
+                            placeholder={(() => {
+                              switch (field.fieldType) {
+                                case 'text':
+                                  return 'Text field (e.g., First Name, Last Name)';
+                                case 'number':
+                                  return 'Number field (e.g., Quantity, Age)';
+                                case 'date':
+                                  return 'Date field (e.g., Date of Birth, Start Date)';
+                                case 'textarea':
+                                  return 'Long text field (e.g., Comments, Notes)';
+                                case 'checkbox':
+                                  return 'Checkbox field (e.g., Accept Terms, Subscribe)';
+                                case 'select':
+                                  return 'Select field (e.g., Favorite Fruit, Department)';
+                                case 'radio':
+                                  return 'Radio field (e.g., Preferred Contact Method, Gender)';
+                                case 'multicheckbox':
+                                  return 'Multi-select field (e.g., Allergies, Skills)';
+                                case 'rating':
+                                  return 'Rating field (e.g., Satisfaction Rating, Difficulty)';
+                                default:
+                                  return 'Field Name';
+                              }
+                            })()}
+                            value={field.fieldName}
+                            onChange={(e) => handleFieldChange(field.clientId, 'fieldName', e.target.value)}
+                          />
+                          {/* Checkbox-specific description fields */}
+                          {field.fieldType === 'checkbox' && (
+                            <Input
+                              id={`checkbox-desc-${field.clientId}`}
+                              placeholder="Description (e.g., I agree, Yes, Accept Terms)"
+                              value={field.checkboxDescription || ''}
+                              onChange={e => handleFieldChange(field.clientId, 'checkboxDescription', e.target.value)}
+                              className="mt-1"
+                            />
+                          )}
+                          {(field.fieldType === 'select' || field.fieldType === 'radio' || field.fieldType === 'multicheckbox') && (
+                            <div className="space-y-2 pt-2">
+                              <Label htmlFor={`field-options-${field.clientId}`}>Options (one per line)</Label>
+                              <Textarea
+                                id={`field-options-${field.clientId}`}
+                                placeholder="Option 1\nOption 2\nOption 3"
+                                value={fieldOptionsText[field.clientId] || ''}
+                                onChange={(e) => handleOptionsTextChange(field.clientId, e.target.value)}
+                                rows={3}
+                              />
+                            </div>
+                          )}
+                          {field.fieldType === 'rating' && (
+                            <div className="flex items-center space-x-2 pt-2">
+                              <div className="space-y-1 w-1/2">
+                                <Label htmlFor={`field-rating-min-${field.clientId}`}>Min Value</Label>
+                                <Input
+                                  id={`field-rating-min-${field.clientId}`}
+                                  type="number"
+                                  placeholder="e.g., 1"
+                                  value={fieldRatingValues[field.clientId]?.min || ''}
+                                  onChange={(e) => handleRatingChange(field.clientId, 'min', e.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-1 w-1/2">
+                                <Label htmlFor={`field-rating-max-${field.clientId}`}>Max Value</Label>
+                                <Input
+                                  id={`field-rating-max-${field.clientId}`}
+                                  type="number"
+                                  placeholder="e.g., 5"
+                                  value={fieldRatingValues[field.clientId]?.max || ''}
+                                  onChange={(e) => handleRatingChange(field.clientId, 'max', e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <Button
                           variant="ghost"
@@ -523,45 +602,6 @@ export default function EditFormPage() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-
-                      {/* Conditionally render Options Textarea for 'select', 'radio', OR 'multicheckbox' */}
-                      {(field.fieldType === 'select' || field.fieldType === 'radio' || field.fieldType === 'multicheckbox') && (
-                        <div className="space-y-2 pl-2 pt-2">
-                          <Label htmlFor={`field-options-${field.clientId}`}>Options (one per line)</Label>
-                          <Textarea
-                            id={`field-options-${field.clientId}`}
-                            placeholder="Option 1\nOption 2\nOption 3"
-                            value={fieldOptionsText[field.clientId] || ''}
-                            onChange={(e) => handleOptionsTextChange(field.clientId, e.target.value)}
-                            rows={3}
-                          />
-                        </div>
-                      )}
-                      {/* Conditionally render Rating Min/Max Inputs */}
-                      {field.fieldType === 'rating' && (
-                        <div className="flex items-center space-x-2 pl-2 pt-2">
-                          <div className="space-y-1 w-1/2">
-                            <Label htmlFor={`field-rating-min-${field.clientId}`}>Min Value</Label>
-                            <Input
-                              id={`field-rating-min-${field.clientId}`}
-                              type="number"
-                              placeholder="e.g., 1"
-                              value={fieldRatingValues[field.clientId]?.min || ''}
-                              onChange={(e) => handleRatingChange(field.clientId, 'min', e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-1 w-1/2">
-                            <Label htmlFor={`field-rating-max-${field.clientId}`}>Max Value</Label>
-                            <Input
-                              id={`field-rating-max-${field.clientId}`}
-                              type="number"
-                              placeholder="e.g., 5"
-                              value={fieldRatingValues[field.clientId]?.max || ''}
-                              onChange={(e) => handleRatingChange(field.clientId, 'max', e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </React.Fragment>
                   ))
                 )}
@@ -606,42 +646,45 @@ export default function EditFormPage() {
                     case 'text':
                       return (
                         <div key={field.clientId}>
-                          <Label>{field.fieldName || 'Text Field'}</Label>
+                          <Label>{field.fieldName || 'Text Field'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <Input disabled placeholder="Text input" />
                         </div>
                       );
                     case 'number':
                       return (
                         <div key={field.clientId}>
-                          <Label>{field.fieldName || 'Number Field'}</Label>
+                          <Label>{field.fieldName || 'Number Field'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <Input type="number" disabled placeholder="Number input" />
                         </div>
                       );
                     case 'date':
                       return (
                         <div key={field.clientId}>
-                          <Label>{field.fieldName || 'Date Field'}</Label>
+                          <Label>{field.fieldName || 'Date Field'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <Input type="date" disabled />
                         </div>
                       );
                     case 'textarea':
                       return (
                         <div key={field.clientId}>
-                          <Label>{field.fieldName || 'Textarea'}</Label>
+                          <Label>{field.fieldName || 'Textarea'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <Textarea disabled placeholder="Textarea" />
                         </div>
                       );
                     case 'checkbox':
                       return (
-                        <div key={field.clientId} className="flex items-center gap-2">
-                          <input type="checkbox" disabled />
-                          <Label>{field.fieldName || 'Checkbox'}</Label>
+                        <div key={field.clientId}>
+                          <Label>{field.fieldName || 'Checkbox'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
+                          <div className="flex items-center gap-2 mt-1">
+                            <input type="checkbox" disabled />
+                            <span>{field.checkboxDescription || 'Checkbox'}</span>
+                          </div>
                         </div>
                       );
                     case 'select':
                       return (
                         <div key={field.clientId}>
-                          <Label>{field.fieldName || 'Select'}</Label>
+                          <Label>{field.fieldName || 'Select'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <select disabled className="border rounded px-2 py-1 w-full">
                             {(fieldOptionsText[field.clientId]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
                               <option key={idx}>{opt}</option>
@@ -652,7 +695,7 @@ export default function EditFormPage() {
                     case 'radio':
                       return (
                         <div key={field.clientId}>
-                          <Label>{field.fieldName || 'Radio'}</Label>
+                          <Label>{field.fieldName || 'Radio'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <div className="flex gap-4 mt-1">
                             {(fieldOptionsText[field.clientId]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
                               <label key={idx} className="flex items-center gap-1">
@@ -665,7 +708,7 @@ export default function EditFormPage() {
                     case 'multicheckbox':
                       return (
                         <div key={field.clientId}>
-                          <Label>{field.fieldName || 'Multicheckbox'}</Label>
+                          <Label>{field.fieldName || 'Multicheckbox'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <div className="flex gap-4 mt-1">
                             {(fieldOptionsText[field.clientId]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
                               <label key={idx} className="flex items-center gap-1">
@@ -678,7 +721,7 @@ export default function EditFormPage() {
                     case 'rating':
                       return (
                         <div key={field.clientId}>
-                          <Label>{field.fieldName || 'Rating'}</Label>
+                          <Label>{field.fieldName || 'Rating'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <div className="flex gap-1 mt-1">
                             {(() => {
                               const min = parseInt(fieldRatingValues[field.clientId]?.min || '1', 10);

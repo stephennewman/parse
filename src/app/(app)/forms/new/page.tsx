@@ -41,6 +41,7 @@ interface FormFieldState {
   id: string;
   fieldName: string;
   fieldType: string;
+  required?: boolean;
   rating_min?: number;
   rating_max?: number;
 }
@@ -48,12 +49,13 @@ interface FormFieldState {
 interface FormFieldPayload {
   template_id: string;
   label: string;
-  internal_key: string;
+  internalKey: string;
   field_type: string;
   display_order: number;
   options?: string[] | null;
   rating_min?: number | null;
   rating_max?: number | null;
+  required: boolean;
 }
 
 // Define allowed field types
@@ -88,11 +90,12 @@ export default function NewFormPage() {
         id: crypto.randomUUID(),
         fieldName: "",
         fieldType: FIELD_TYPES[0] || "text",
+        required: true,
       },
     ]);
   };
 
-  const handleFieldChange = (id: string, property: keyof FormFieldState, value: string) => {
+  const handleFieldChange = (id: string, property: keyof FormFieldState, value: any) => {
     setFields(prevFields =>
       prevFields.map(field =>
         field.id === id ? { ...field, [property]: value } : field
@@ -228,14 +231,15 @@ export default function NewFormPage() {
               }
 
               return {
-                  template_id: templateId as string,
-                  label: label,
-                  internal_key: internalKey,
+                  template_id: templateId!,
+                  label,
+                  internalKey,
                   field_type: field.fieldType,
                   display_order: fields.indexOf(field),
                   options: optionsPayload,
-                  rating_min: ratingMinPayload,
-                  rating_max: ratingMaxPayload,
+                  rating_min: field.fieldType === 'rating' ? Number(fieldRatingValues[field.id]?.min) || null : null,
+                  rating_max: field.fieldType === 'rating' ? Number(fieldRatingValues[field.id]?.max) || null : null,
+                  required: !!field.required,
               };
             });
 
@@ -397,7 +401,18 @@ export default function NewFormPage() {
                 ) : (
                   fields.map((field) => (
                     <React.Fragment key={field.id}>
-                      <div className="flex items-end gap-4 p-4 border rounded-md bg-gray-50">
+                      <div className="flex items-end gap-4 p-4 border rounded-md bg-gray-50 relative">
+                        {/* Required toggle: top right */}
+                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                          <span className="text-xs font-medium">Required</span>
+                          <input
+                            type="checkbox"
+                            checked={field.required || false}
+                            onChange={e => handleFieldChange(field.id, 'required', e.target.checked)}
+                            className="toggle toggle-sm"
+                            aria-label="Toggle required field"
+                          />
+                        </div>
                         <div className="flex-grow space-y-2">
                           <Label htmlFor={`field-name-${field.id}`}>Field Name</Label>
                           <Input
@@ -526,28 +541,28 @@ export default function NewFormPage() {
                     case 'text':
                       return (
                         <div key={field.id}>
-                          <Label>{field.fieldName || 'Text Field'}</Label>
+                          <Label>{field.fieldName || 'Text Field'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <Input disabled placeholder="Text input" />
                         </div>
                       );
                     case 'number':
                       return (
                         <div key={field.id}>
-                          <Label>{field.fieldName || 'Number Field'}</Label>
+                          <Label>{field.fieldName || 'Number Field'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <Input type="number" disabled placeholder="Number input" />
                         </div>
                       );
                     case 'date':
                       return (
                         <div key={field.id}>
-                          <Label>{field.fieldName || 'Date Field'}</Label>
+                          <Label>{field.fieldName || 'Date Field'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <Input type="date" disabled />
                         </div>
                       );
                     case 'textarea':
                       return (
                         <div key={field.id}>
-                          <Label>{field.fieldName || 'Textarea'}</Label>
+                          <Label>{field.fieldName || 'Textarea'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <Textarea disabled placeholder="Textarea" />
                         </div>
                       );
@@ -555,13 +570,13 @@ export default function NewFormPage() {
                       return (
                         <div key={field.id} className="flex items-center gap-2">
                           <input type="checkbox" disabled />
-                          <Label>{field.fieldName || 'Checkbox'}</Label>
+                          <Label>{field.fieldName || 'Checkbox'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                         </div>
                       );
                     case 'select':
                       return (
                         <div key={field.id}>
-                          <Label>{field.fieldName || 'Select'}</Label>
+                          <Label>{field.fieldName || 'Select'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <select disabled className="border rounded px-2 py-1 w-full">
                             {(fieldOptionsText[field.id]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
                               <option key={idx}>{opt}</option>
@@ -572,7 +587,7 @@ export default function NewFormPage() {
                     case 'radio':
                       return (
                         <div key={field.id}>
-                          <Label>{field.fieldName || 'Radio'}</Label>
+                          <Label>{field.fieldName || 'Radio'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <div className="flex gap-4 mt-1">
                             {(fieldOptionsText[field.id]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
                               <label key={idx} className="flex items-center gap-1">
@@ -585,7 +600,7 @@ export default function NewFormPage() {
                     case 'multicheckbox':
                       return (
                         <div key={field.id}>
-                          <Label>{field.fieldName || 'Multicheckbox'}</Label>
+                          <Label>{field.fieldName || 'Multicheckbox'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <div className="flex gap-4 mt-1">
                             {(fieldOptionsText[field.id]?.split('\n').filter(Boolean) || ['Option 1', 'Option 2']).map((opt, idx) => (
                               <label key={idx} className="flex items-center gap-1">
@@ -598,7 +613,7 @@ export default function NewFormPage() {
                     case 'rating':
                       return (
                         <div key={field.id}>
-                          <Label>{field.fieldName || 'Rating'}</Label>
+                          <Label>{field.fieldName || 'Rating'}{field.required ? <span className="text-red-500 ml-1">*</span> : null}</Label>
                           <div className="flex gap-1 mt-1">
                             {(() => {
                               const min = parseInt(fieldRatingValues[field.id]?.min || '1', 10);
