@@ -910,7 +910,18 @@ export default function CaptureForm({ formId, isPublic, router }: CaptureFormPro
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">{template.name}</h1>
+        <div>
+          <h1 className="text-xl font-semibold">{template.name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', marginTop: 4, marginLeft: 2, opacity: 0.7 }}>
+            <span style={{ fontSize: 12, color: '#666', marginRight: 4 }}>Powered by</span>
+            <img
+              src="https://blog.krezzo.com/hs-fs/hubfs/Krezzo-Logo-2023-Light.png?width=3248&height=800&name=Krezzo-Logo-2023-Light.png"
+              alt="Krezzo logo"
+              style={{ height: 20 }}
+              aria-label="Powered by Krezzo"
+            />
+          </div>
+        </div>
         {/* Entry Mode Toggle for Public Forms - now top right */}
         {isPublic && (entryMode === 'manual' || currentPhase === CapturePhase.Prompting) && (
           <div className="flex gap-2 items-center">

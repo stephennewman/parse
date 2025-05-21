@@ -55,10 +55,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Sidebar content container - takes full height */}
         <div className="flex flex-col h-full p-4 pt-2"> {/* Reduced top padding to move logo up */}
           {/* App Title Area */}
-          <div className="mb-2 px-1 flex items-center justify-center">
+          <div className="mb-2 px-1 flex flex-col items-center justify-center">
             <img
-              src="https://s3.ca-central-1.amazonaws.com/logojoy/logos/220875599/noBgColor.png?5663.5999999940395"
-              alt="App Logo"
+              src="https://blog.krezzo.com/hs-fs/hubfs/Krezzo-Logo-2023-Light.png?width=3248&height=800&name=Krezzo-Logo-2023-Light.png"
+              alt="Krezzo Logo"
               className="h-20 w-auto object-contain"
               style={{ maxWidth: 200 }}
             />

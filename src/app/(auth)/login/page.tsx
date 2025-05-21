@@ -48,7 +48,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <img
-        src="https://s3.ca-central-1.amazonaws.com/logojoy/logos/220875599/noBgColor.png?5663.5999999940395"
+        src="https://blog.krezzo.com/hs-fs/hubfs/Krezzo-Logo-2023-Light.png?width=3248&height=800&name=Krezzo-Logo-2023-Light.png"
         alt="Parse Logo"
         className="h-16 w-auto mx-auto mb-6"
       />

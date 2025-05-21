@@ -9,8 +9,8 @@ import "./globals.css";
 import { cn } from "~/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Parse",
-  description: "Capture structured data using voice with Parse",
+  title: "Krezzo",
+  description: "Capture structured data using voice with Krezzo",
 };
 
 export default function RootLayout({
