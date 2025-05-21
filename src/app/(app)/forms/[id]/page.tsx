@@ -241,7 +241,7 @@ export default function FormDetailPage() {
             <CardDescription>{template.description}</CardDescription>
           </div>
           <div className="flex gap-2 items-center relative">
-            <Button variant="outline" onClick={() => window.open(captureLink, '_blank')} size="sm">
+            <Button variant="outline" onClick={() => window.open(`${captureLink}?entryMode=voice`, '_blank')} size="sm" className="cursor-pointer">
               <ExternalLink className="w-4 h-4 mr-1" /> View Form
             </Button>
             {/* Custom Meatball Dropdown */}
